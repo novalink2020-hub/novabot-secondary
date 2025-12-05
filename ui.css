@@ -1,0 +1,12 @@
+#nova-test-box {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #1b577c;
+  color: white;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  font-family: Arial, sans-serif;
+  z-index: 999999;
+}
