@@ -1,70 +1,48 @@
-// NovaBot v7 – Shadow DOM Loader (based on v6.9 Unified Blue Glass)
-// By Mohammed Abu Snaina – NOVALINK.AI
+// NovaBot v7 – Shadow DOM Widget Loader
+// محمد أبو سنينة – NOVALINK.AI
 
 (function () {
-  // تأكد من تحميل خط Tajawal مرة واحدة فقط
-  (function ensureTajawalFont() {
-    const href = "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap";
-    if (![...document.styleSheets].some(s => s.href === href) &&
-        ![...document.querySelectorAll('link[rel="stylesheet"]')].some(l => l.href === href)) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = href;
-      document.head.appendChild(link);
-    }
-  })();
-
-  // نحصل على سكربت اللودر الحالي لقراءة الـ data-attributes
-  const currentScript = document.currentScript || (function () {
-    const scripts = document.getElementsByTagName("script");
-    return scripts[scripts.length - 1];
-  })();
+  const scriptEl = document.currentScript;
 
   const CONFIG = {
-    BRAND_NAME: "نوفا لينك",
-    PRIMARY_COLOR: "#1b577c",
-    ACCENT_COLOR: "#fe930e",
-
-    API_PRIMARY: currentScript?.getAttribute("data-novabot-api") || "https://novabot-brain.onrender.com",
-    API_FALLBACK: currentScript?.getAttribute("data-novabot-api") || "https://novabot-brain.onrender.com",
-
-    CHANNEL: "web",
-    BUSINESS_TYPE: "blog",
-    LOCALE: (currentScript?.getAttribute("data-novabot-locale") || "ar").toLowerCase(),
-
-    SOUND_URL: "https://assets.zyrosite.com/YD0w46zZ5ZIrwlP8/new-notification-3-398649-RwIqiPPdJUta0dpV.mp3",
-
+    API: scriptEl.getAttribute("data-novabot-api") || "https://novabot-brain.onrender.com",
+    LOCALE: scriptEl.getAttribute("data-novabot-locale") || "ar",
+    BRAND_NAME: scriptEl.getAttribute("data-novabot-brand") || "نوفا لينك",
+    SOUND_URL:
+      scriptEl.getAttribute("data-novabot-sound") ||
+      "https://assets.zyrosite.com/YD0w46zZ5ZIrwlP8/new-notification-3-398649-RwIqiPPdJUta0dpV.mp3",
     SUBSCRIBE_URL: "https://novalink-ai.com/ashtrk-alan",
     SERVICES_URL: "https://novalink-ai.com/services-khdmat-nwfa-lynk",
-    FEEDBACK_API: "",
     CONTACT_EMAIL: "contact@novalink-ai.com",
-
-    STORAGE_KEY: "novabot_v6.9_conversation",
-    STORAGE_TTL_MS: 12 * 60 * 60 * 1000 // 12 ساعة
+    STORAGE_KEY: "novabot_v7_conversation",
+    STORAGE_TTL_MS: 12 * 60 * 60 * 1000
   };
 
-  const WELCOME_HTML =
-    "مرحباً بك في نوفا لينك 👋<br>" +
-    "أنا نوفا بوت… جاهز لمساعدتك في أي سؤال حول الذكاء الاصطناعي وتطوير أعمالك.";
-
-  // إنشاء عنصر مستضيف للـ Shadow DOM
+  // Create host element for shadow DOM
   const host = document.createElement("div");
   host.id = "novabot-widget-host";
   document.body.appendChild(host);
 
   const shadow = host.attachShadow({ mode: "open" });
 
-  // ============ CSS كامل لنسخة 6.9 + وضع نهاري للموبايل/تابلت ============
+  // Tajawal font
+  const fontLink = document.createElement("link");
+  fontLink.rel = "stylesheet";
+  fontLink.href =
+    "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap";
+
+  // Core CSS (Dark + Light + Fullscreen Logic)
   const style = document.createElement("style");
   style.textContent = `
-:root {
+:host {
   --nova-blue: #1b577c;
   --nova-orange: #fe930e;
   --nova-bg-dark: #0b1824;
   --nova-font: "Tajawal", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--nova-font);
 }
 
-/* ============ الزر العائم ============ */
+/* ------- زر عائم ثابت على كل الشاشات ------- */
 .nova-fab {
   position: fixed;
   bottom: 20px;
@@ -111,8 +89,6 @@
     0 0 0 2px rgba(254, 147, 14, 0.4);
   filter: drop-shadow(0 0 12px rgba(254, 147, 14, 0.6));
 }
-
-/* اهتزاز خفيف */
 @keyframes novaPulse {
   0%, 100% { transform: translateY(0) scale(1); }
   25% { transform: translateY(-3px) scale(1.02); }
@@ -122,15 +98,13 @@
 .nova-fab.nova-idle {
   animation: novaPulse 0.9s ease-in-out 1;
 }
-
-/* إخفاء الزر على الموبايل عند الفتح */
 .nova-fab.nova-hidden {
   opacity: 0;
   pointer-events: none;
   transform: translateY(10px) scale(0.9);
 }
 
-/* ============ الخلفية خلف نافذة الدردشة ============ */
+/* ------- خلفية النافذة ------- */
 .nova-chat-backdrop {
   position: fixed;
   inset: 0;
@@ -143,8 +117,12 @@
   pointer-events: none;
   transition: opacity 0.35s ease;
 }
+.nova-chat-backdrop.nova-open {
+  opacity: 1;
+  pointer-events: auto;
+}
 
-/* ============ نافذة الدردشة – ثيم موحّد ============ */
+/* ------- الشِل (نافذة المحادثة) – الوضع الافتراضي (كمبيوتر) ------- */
 .nova-chat-shell {
   position: relative;
   margin: 16px 16px 120px 16px;
@@ -166,18 +144,23 @@
     transform 0.35s cubic-bezier(0.23, 1, 0.32, 1.1),
     opacity 0.35s ease;
 }
-
-/* حالة الفتح */
-.nova-chat-backdrop.nova-open {
-  opacity: 1;
-  pointer-events: auto;
-}
 .nova-chat-backdrop.nova-open .nova-chat-shell {
   opacity: 1;
   transform: translateY(0) scale(1);
 }
 
-/* ============ الهيدر – Glass Card موحّد ============ */
+/* ------- وضع FULLSCREEN على الموبايل والتابلت ------- */
+/* نضيف كلاس .nova-fullscreen من الجافاسكربت عندما يكون العرض <= 1024 */
+.nova-chat-shell.nova-fullscreen {
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+/* ------- الهيدر (ليلي افتراضي) ------- */
 .nova-chat-header {
   display: flex;
   align-items: center;
@@ -269,22 +252,15 @@
   color: #ffffff;
 }
 
-/* ============ جسم المحادثة ============ */
+/* ------- جسم المحادثة (ليلي) ------- */
 .nova-chat-body {
   flex: 1;
   padding: 6px 10px 80px 10px;
   overflow-y: auto;
   direction: rtl;
   font-family: var(--nova-font);
-  background: linear-gradient(
-    135deg,
-    #0b1824 0%,
-    #101f33 40%,
-    #050b14 100%
-  );
+  background: linear-gradient(135deg, #0b1824 0%, #101f33 40%, #050b14 100%);
 }
-
-/* Scrollbar */
 .nova-chat-body::-webkit-scrollbar {
   width: 6px;
 }
@@ -296,7 +272,7 @@
   border-radius: 10px;
 }
 
-/* فقاعات الرسائل */
+/* ------- فقاعات الرسائل ------- */
 .nova-msg-row {
   display: flex;
   margin-bottom: 8px;
@@ -320,12 +296,12 @@
 /* فقاعة المستخدم */
 .nova-bubble-user {
   background: linear-gradient(135deg, #1b577c, #13405b);
-  color: #fdfdff;
+  color: #ffffff;
   border-bottom-right-radius: 4px;
   box-shadow: 0 4px 12px rgba(10, 26, 44, 0.6);
 }
 
-/* فقاعة نوفا – الوضع الليلي */
+/* فقاعة نوفا */
 .nova-bubble-bot {
   background: rgba(12, 26, 44, 0.96);
   border: 1px solid rgba(192, 209, 224, 0.35);
@@ -334,8 +310,6 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
   position: relative;
 }
-
-/* رأس فقاعة البوت */
 .nova-bot-header {
   display: flex;
   align-items: center;
@@ -363,8 +337,6 @@
   font-weight: 600;
   letter-spacing: 0.01em;
 }
-
-/* محتوى فقاعة البوت */
 .nova-bubble-content {
   font-size: 13px;
 }
@@ -376,7 +348,7 @@
   color: #ffe0a6;
 }
 
-/* ============ مؤشر الكتابة ============ */
+/* مؤشر الكتابة */
 .nova-typing {
   font-size: 11px;
   color: rgba(227, 237, 249, 0.98);
@@ -404,15 +376,16 @@
   40% { opacity: 1; transform: translateY(-2px); }
 }
 
-/* ============ الفوتر الزجاجي ============ */
+/* الفوتر */
 .nova-chat-footer {
   padding: 0;
   border-top: none;
   background: transparent;
   position: relative;
+  flex-shrink: 0;
 }
 .nova-footer-row {
-  position: absolute;
+  position: relative;
   left: 0;
   right: 0;
   bottom: 0;
@@ -435,7 +408,7 @@
   flex: 1;
 }
 
-/* حقل الكتابة – سطر واحد → 4 سطور */
+/* حقل الكتابة */
 .nova-input {
   width: 100%;
   padding: 7px 10px 7px 52px;
@@ -463,6 +436,7 @@
   box-shadow: 0 0 0 1px rgba(254, 147, 14, 0.4);
   background: rgba(8, 18, 30, 0.98);
 }
+
 .nova-input-hint {
   position: absolute;
   left: 14px;
@@ -494,9 +468,6 @@
   min-width: 40px;
   min-height: 40px;
 }
-.nova-send-btn span {
-  font-size: 15px;
-}
 .nova-send-btn:hover {
   transform: translateY(-1px);
   filter: brightness(1.02);
@@ -512,7 +483,7 @@
   box-shadow: none;
 }
 
-/* روابط عامة + رسائل نظامية */
+/* روابط ورسائل نظام */
 .nova-link {
   color: #82b7ff;
   text-decoration: underline;
@@ -528,7 +499,7 @@
   margin: 6px 0 2px;
 }
 
-/* ============ البطاقات الذكية ============ */
+/* البطاقات */
 .nova-card {
   margin-top: 8px;
   padding: 10px 12px;
@@ -601,142 +572,95 @@
   height: 6px;
 }
 
-/* توحيد النصوص لتكون فاتحة في الوضع الليلي */
+/* توحيد الخط */
 .nova-chat-body,
-.nova-chat-body *,
+.nova-chat-body * ,
 .nova-card,
 .nova-card *,
 .nova-input,
 .nova-system-msg {
-  color: #f5f7ff;
+  font-family: var(--nova-font);
 }
 
-/* ============ موبايل: 55% ارتفاع للشِل وتعديل بسيط للهيدر ============ */
+/* ------- Light Mode – Mobile/Tablet Only (مع ألوان نوفا لينك) ------- */
+
+.nova-chat-shell.nova-light {
+  background: #f5f7fc;
+  border: 1px solid rgba(27,87,124,0.18);
+  box-shadow:
+    0 18px 40px rgba(0,0,0,0.10),
+    0 0 0 1px rgba(255,255,255,0.8);
+}
+.nova-chat-shell.nova-light .nova-chat-header {
+  background: rgba(255,255,255,0.9);
+  color: #1b577c;
+  border-bottom: 1px solid rgba(27,87,124,0.16);
+  box-shadow: 0 4px 14px rgba(27,87,124,0.25); /* ظل واضح فوق الفقاعات */
+}
+.nova-chat-shell.nova-light .nova-header-title {
+  color: #1b2b3d;
+}
+.nova-chat-shell.nova-light .nova-header-chip {
+  color: #2a3f55;
+  border-color: rgba(27,87,124,0.35);
+}
+.nova-chat-shell.nova-light .nova-chat-body {
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.96),
+    rgba(245,247,252,0.98)
+  );
+  color: #0b1a2a;
+}
+.nova-chat-shell.nova-light .nova-bubble-bot {
+  background: #e4edf8;
+  border: 1px solid rgba(27,87,124,0.22);
+  color: #0b1a2a;
+}
+.nova-chat-shell.nova-light .nova-bubble-user {
+  background: linear-gradient(135deg, #1b577c, #13405b);
+  color: #ffffff; /* نص أبيض داخل فقاعة المستخدم الداكنة */
+}
+.nova-chat-shell.nova-light .nova-card {
+  background: rgba(255,255,255,0.95);
+  border-color: rgba(27,87,124,0.18);
+  color: #0b1a2a;
+}
+.nova-chat-shell.nova-light .nova-card-header {
+  color: #1b2b3d;
+}
+.nova-chat-shell.nova-light .nova-card-text {
+  color: #1d3046;
+}
+.nova-chat-shell.nova-light .nova-card-input {
+  background: rgba(255,255,255,0.98);
+  border-color: rgba(27,87,124,0.35);
+  color: #0b1a2a;
+}
+.nova-chat-shell.nova-light .nova-input {
+  background: rgba(255,255,255,0.96);
+  border: 1px solid rgba(27,87,124,0.35);
+  color: #0b1a2a;
+}
+.nova-chat-shell.nova-light .nova-input:focus {
+  background: rgba(255,255,255,0.96); /* لا يتحول داكن عند الضغط */
+}
+.nova-chat-shell.nova-light .nova-system-msg {
+  color: rgba(27, 87, 124, 0.7);
+}
+
+/* ------- موبايل: slight tweak لو لم نكن في fullscreen (احتياط) ------- */
 @media (max-width: 768px) {
   .nova-chat-backdrop {
     align-items: flex-end;
     justify-content: center;
   }
-
-  .nova-chat-shell {
-    margin: 0 10px 12px 10px;
-    width: calc(100vw - 20px);
-    height: 55dvh;
-  }
-
-  .nova-header-avatar {
-    width: 30px;
-    height: 44px;
-  }
-  .nova-header-title {
-    font-size: 12px;
-  }
-  .nova-header-subtitle {
-    font-size: 10px;
-  }
-  .nova-header-chip {
-    font-size: 9px;
-    padding: 2px 7px;
-  }
 }
 
-/* ============ وضع نهاري – موبايل/تابلت فقط (حسب وضع الجهاز) ============ */
-@media (max-width: 1024px) and (prefers-color-scheme: light) {
-  .nova-chat-shell {
-    background: #f5f7fc;
-    border: 1px solid rgba(27, 87, 124, 0.18);
-    box-shadow:
-      0 18px 40px rgba(0, 0, 0, 0.10),
-      0 0 0 1px rgba(255, 255, 255, 0.8);
-  }
-
-  .nova-chat-header {
-    background: rgba(255, 255, 255, 0.90);
-    color: #1b577c;
-    border-bottom: 1px solid rgba(27, 87, 124, 0.16);
-    box-shadow: 0 4px 12px rgba(27, 87, 124, 0.12);
-  }
-
-  .nova-header-title {
-    color: #1b577c;
-  }
-
-  .nova-header-subtitle {
-    color: rgba(11, 26, 44, 0.8);
-  }
-
-  .nova-chat-body {
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.98),
-      rgba(245, 247, 252, 1)
-    );
-    color: #0b1a2a;
-  }
-
-  /* فقاعة نوفا – سماوي أغمق (الخيار B) */
-  .nova-bubble-bot {
-    background: #c9e2f7;
-    border: 1px solid rgba(27, 87, 124, 0.35);
-    color: #092030;
-    box-shadow: 0 4px 14px rgba(27, 87, 124, 0.25);
-  }
-
-  .nova-bot-header {
-    color: #092030;
-  }
-
-  .nova-bubble-content a {
-    color: #1b577c;
-  }
-  .nova-bubble-content a:hover {
-    color: #fe930e;
-  }
-
-  /* بطاقات نهارية */
-  .nova-card {
-    background: rgba(255, 255, 255, 0.96);
-    border-color: rgba(27, 87, 124, 0.18);
-    color: #0b1a2a;
-    box-shadow: 0 8px 24px rgba(27, 87, 124, 0.20);
-  }
-
-  .nova-card-text,
-  .nova-card-note {
-    color: #0b1a2a;
-  }
-
-  .nova-card-input {
-    background: rgba(255, 255, 255, 0.96);
-    border-color: rgba(27, 87, 124, 0.30);
-    color: #0b1a2a;
-  }
-
-  /* حقل الكتابة نهاري */
-  .nova-input {
-    background: rgba(255, 255, 255, 0.97);
-    border: 1px solid rgba(27, 87, 124, 0.35);
-    color: #0b1a2a;
-  }
-  .nova-input::placeholder {
-    color: rgba(27, 87, 124, 0.6);
-  }
-
-  /* نصوص داخل الجسم والبطاقات */
-  .nova-chat-body,
-  .nova-chat-body *,
-  .nova-card,
-  .nova-card *,
-  .nova-input,
-  .nova-system-msg {
-    color: #0b1a2a;
-  }
-}
+/* نهاية CSS */
 `;
 
-  shadow.appendChild(style);
-
-  // ============ HTML واجهة 6.9 داخل الـ Shadow DOM ============
+  // UI HTML داخل الـ Shadow DOM
   const wrapper = document.createElement("div");
   wrapper.innerHTML = `
     <button class="nova-fab" id="novaFabBtn" aria-label="Open NovaBot chat">
@@ -746,7 +670,7 @@
     </button>
 
     <div class="nova-chat-backdrop" id="novaBackdrop" aria-hidden="true">
-      <div class="nova-chat-shell" dir="rtl">
+      <div class="nova-chat-shell" id="novaShell" dir="rtl">
         <header class="nova-chat-header">
           <div class="nova-header-left">
             <div class="nova-header-avatar">
@@ -789,12 +713,15 @@
       </div>
     </div>
   `;
+
+  shadow.appendChild(fontLink);
+  shadow.appendChild(style);
   shadow.appendChild(wrapper);
 
-  // ============ JS المنطقي – نسخة 6.9 معزولة داخل الـ Shadow ============
-
+  // ----------------- JS Logic inside Shadow DOM -----------------
   const fabBtn = shadow.getElementById("novaFabBtn");
   const backdrop = shadow.getElementById("novaBackdrop");
+  const shell = shadow.getElementById("novaShell");
   const closeBtn = shadow.getElementById("novaCloseBtn");
   const chatBody = shadow.getElementById("novaChatBody");
   const input = shadow.getElementById("novaInput");
@@ -814,6 +741,42 @@
   let businessCardShown = false;
   let collabCardShown = false;
 
+  const audioObj = new Audio(CONFIG.SOUND_URL);
+
+  const WELCOME_HTML =
+    "مرحباً بك في نوفا لينك 👋<br>" +
+    "أنا نوفا بوت… جاهز لمساعدتك في أي سؤال حول الذكاء الاصطناعي وتطوير أعمالك.";
+
+  function isMobileOrTablet() {
+    return window.innerWidth <= 1024;
+  }
+
+  function isLightPreferred() {
+    if (window.matchMedia) {
+      return window.matchMedia("(prefers-color-scheme: light)").matches;
+    }
+    return false;
+  }
+
+  // تطبيق وضع fullscreen + theme
+  function applyLayoutMode() {
+    const mobileTablet = isMobileOrTablet();
+    if (mobileTablet) {
+      shell.classList.add("nova-fullscreen");
+      if (isLightPreferred()) {
+        shell.classList.add("nova-light");
+      } else {
+        shell.classList.remove("nova-light");
+      }
+    } else {
+      shell.classList.remove("nova-fullscreen");
+      shell.classList.remove("nova-light");
+    }
+  }
+
+  applyLayoutMode();
+  window.addEventListener("resize", applyLayoutMode);
+
   function escapeHtml(str) {
     return (str || "").replace(/[&<>"]/g, (c) => {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] || c;
@@ -828,14 +791,10 @@
     if (!CONFIG.SOUND_URL) return;
     if (soundCount >= 3) return;
     try {
-      const a = new Audio(CONFIG.SOUND_URL);
-      a.play().catch(() => {});
+      audioObj.currentTime = 0;
+      audioObj.play().catch(() => {});
       soundCount++;
     } catch (e) {}
-  }
-
-  function isSmallScreen() {
-    return window.innerWidth <= 640;
   }
 
   function clearTypingState() {
@@ -949,10 +908,10 @@
     playNovaSound();
   }
 
-  // اتصال فعلي بالسيرفر
+  // اتصال فعلي بالـ API
   async function callNovaApi(message) {
     try {
-      const response = await fetch(CONFIG.API_PRIMARY, {
+      const response = await fetch(CONFIG.API, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -1051,25 +1010,7 @@
       btnPrimary.disabled = true;
       btnPrimary.textContent = "جارٍ الإرسال...";
 
-      if (CONFIG.FEEDBACK_API) {
-        try {
-          await fetch(CONFIG.FEEDBACK_API, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "subscribe",
-              email,
-              intent: isBusiness ? "business_subscribe" : "newsletter_subscribe",
-              source: isBusiness ? "novabot-business-card" : "novabot-subscribe-card",
-              url: window.location.href,
-              createdAt: new Date().toISOString()
-            })
-          });
-        } catch (e) {
-          console.warn("⚠️ Feedback API error:", e);
-        }
-      }
-
+      // يمكن لاحقًا ربط FEEDBACK_API هنا
       btnPrimary.textContent = "تم الاشتراك ✅";
     });
 
@@ -1111,24 +1052,6 @@
         `مرحبًا فريق نوفا لينك,\n\nأرغب في استشارة مجانية حول إنشاء بوت دردشة بالذكاء الاصطناعي لمشروعي.\n\nبيانات التواصل:\n${contact}\n\nتم إرسال هذا الطلب عبر نوفا بوت على موقع نوفا لينك.`
       );
 
-      if (CONFIG.FEEDBACK_API) {
-        try {
-          fetch(CONFIG.FEEDBACK_API, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "lead",
-              channel: "bot",
-              contact,
-              source: "novabot-bot-lead-card",
-              url: window.location.href,
-              createdAt: new Date().toISOString()
-            })
-          }).catch(() => {});
-        } catch (e) {}
-
-      }
-
       window.location.href = `mailto:${CONFIG.CONTACT_EMAIL}?subject=${subject}&body=${body}`;
     });
 
@@ -1164,22 +1087,6 @@
       const body = encodeURIComponent(
         `مرحبًا فريق نوفا لينك,\n\nأود مناقشة فرصة تعاون/شراكة معكم.\n\nنوع التعاون المقترح:\n\nالجمهور المستهدف:\n\nتفاصيل إضافية:\n\nتم إرسال هذا الطلب عبر نوفا بوت على موقع نوفا لينك.`
       );
-
-      if (CONFIG.FEEDBACK_API) {
-        try {
-          fetch(CONFIG.FEEDBACK_API, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "collaboration_interest",
-              source: "novabot-collab-card",
-              url: window.location.href,
-              createdAt: new Date().toISOString()
-            })
-          }).catch(() => {});
-        } catch (e) {}
-
-      }
 
       window.location.href = `mailto:${CONFIG.CONTACT_EMAIL}?subject=${subject}&body=${body}`;
     });
@@ -1257,14 +1164,35 @@
   }
   input.addEventListener("input", autoResizeTextarea);
 
+  function focusAndScrollLast() {
+    const rows = chatBody.querySelectorAll(".nova-msg-row");
+    const last = rows[rows.length - 1];
+    if (last && last.scrollIntoView) {
+      last.scrollIntoView({ block: "end", behavior: "smooth" });
+    } else {
+      scrollToBottom();
+    }
+  }
+
+  // التعامل مع لوحة المفاتيح على الموبايل/التابلت
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      if (!novaChatOpen) return;
+      // نجعل الشِل يطابق ارتفاع viewport الفعلي
+      shell.style.height = window.visualViewport.height + "px";
+      focusAndScrollLast();
+    });
+  }
+
   function openChat() {
     if (novaChatOpen) return;
     novaChatOpen = true;
 
+    applyLayoutMode();
     backdrop.classList.add("nova-open");
     backdrop.setAttribute("aria-hidden", "false");
 
-    if (isSmallScreen()) {
+    if (isMobileOrTablet()) {
       fabBtn.classList.add("nova-hidden");
     } else {
       fabBtn.classList.remove("nova-hidden");
@@ -1287,7 +1215,8 @@
 
     setTimeout(() => {
       input.focus();
-    }, isSmallScreen() ? 350 : 200);
+      focusAndScrollLast();
+    }, isMobileOrTablet() ? 350 : 200);
   }
 
   function closeChat(options = { fromBack: false }) {
@@ -1297,8 +1226,10 @@
     backdrop.classList.remove("nova-open");
     backdrop.setAttribute("aria-hidden", "true");
 
+    shell.style.height = ""; // إعادة التعيين عند الإغلاق
+
     setTimeout(() => {
-      if (isSmallScreen()) {
+      if (isMobileOrTablet()) {
         fabBtn.classList.remove("nova-hidden");
       }
     }, 280);
@@ -1353,9 +1284,8 @@
       replyText = (result.reply || "").toString();
     } else {
       replyText =
-        "✨ واجهة نوفا بوت الآن في وضع التجربة (بدون دماغ متصل).\n" +
-        "سيتم قريبًا ربطها بمحرك ذكاء اصطناعي حقيقي ليرد على أسئلتك بشكل ذكي ومخصص.\n" +
-        "إلى أن يتم ذلك، يمكنك استكشاف مقالات نوفا لينك للحصول على أفكار عملية إضافية.";
+        "✨ واجهة نوفا بوت الآن في وضع التجربة.\n" +
+        "إذا استمر الخطأ، يمكنك استكشاف مقالات نوفا لينك للحصول على أفكار عملية إضافية.";
     }
 
     const replyHtml = replyText.replace(/\n/g, "<br>").trim();
