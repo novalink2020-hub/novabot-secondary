@@ -1,110 +1,95 @@
-// NovaBot v6.9 – Shadow DOM Loader (NovaLink AI)
-// يعمل مع WebSite Builder (Hostinger) بدون تضارب CSS أو JS
-
 (function () {
-  const script = document.currentScript;
-  if (!script) return;
+  const scriptEl = document.currentScript;
+  if (!scriptEl) return;
 
-  const API_URL =
-    script.getAttribute("data-novabot-api") ||
-    script.getAttribute("data-api") ||
-    "https://novabot-brain.onrender.com";
+  const apiUrl = scriptEl.getAttribute("data-novabot-api") || "";
+  const localeAttr = (scriptEl.getAttribute("data-novabot-locale") || "ar").toLowerCase();
+  const defaultLang = localeAttr.startsWith("en") ? "en" : "ar";
 
-  const LOCALE = script.getAttribute("data-novabot-locale") || "ar";
+  const baseUrl = scriptEl.src.replace(/[^\/]+$/, "");
 
-  const baseUrl = script.src.replace(/\/[^/]*$/, "/");
-  const htmlUrl = baseUrl + "ui.html";
-  const cssUrl = baseUrl + "ui.css";
+  const hostDiv = document.createElement("div");
+  hostDiv.id = "novabot-widget-root";
+  document.body.appendChild(hostDiv);
 
-  function fetchText(url) {
-    return fetch(url).then(function (res) {
-      if (!res.ok) return "";
-      return res.text();
-    }).catch(function () {
-      return "";
+  const shadow = hostDiv.attachShadow({ mode: "open" });
+
+  Promise.all([
+    fetch(baseUrl + "ui.css").then((r) => r.text()),
+    fetch(baseUrl + "ui.html").then((r) => r.text())
+  ])
+    .then(([cssText, htmlText]) => {
+      shadow.innerHTML = `<style>${cssText}</style>${htmlText}`;
+      initNovaBotWidget(shadow, { apiUrl, defaultLang });
+    })
+    .catch((err) => {
+      console.error("NovaBot widget load error:", err);
     });
-  }
 
-  function init() {
-    Promise.all([fetchText(htmlUrl), fetchText(cssUrl)]).then(function ([html, css]) {
-      if (!html) {
-        console.error("[NovaBot] ui.html لم يتم تحميله correctamente");
-        return;
-      }
+  function initNovaBotWidget(root, options) {
+    const apiEndpoint = options.apiUrl;
+    let lastUserLang = options.defaultLang || "ar";
 
-      var host = document.createElement("div");
-      host.id = "novabot-widget-host";
-      host.style.position = "fixed";
-      host.style.bottom = "0";
-      host.style.right = "0";
-      host.style.zIndex = "99999";
-      host.style.width = "0";
-      host.style.height = "0";
+    const fabBtn = root.getElementById("novaFabBtn");
+    const backdrop = root.getElementById("novaBackdrop");
+    const chatBody = root.getElementById("novaChatBody");
+    const input = root.getElementById("novaInput");
+    const sendBtn = root.getElementById("novaSendBtn");
+    const closeBtn = root.getElementById("novaCloseBtn");
 
-      document.body.appendChild(host);
+    if (!fabBtn || !backdrop || !chatBody || !input || !sendBtn) {
+      console.warn("NovaBot widget: missing core elements.");
+      return;
+    }
 
-      var shadow = host.attachShadow({ mode: "open" });
-
-      shadow.innerHTML = "<style>" + css + "</style>" + html;
-
-      wireLogic(shadow);
-    });
-  }
-
-  function wireLogic(root) {
-    // نفس منطق 6.9 مع تحسينات
-    var NOVA_CLIENT_CONFIG = {
+    const NOVA_CLIENT_CONFIG = {
       BRAND_NAME: "نوفا لينك",
       PRIMARY_COLOR: "#1b577c",
       ACCENT_COLOR: "#fe930e",
-      API_PRIMARY: API_URL,
-      API_FALLBACK: API_URL,
+      API_PRIMARY: apiEndpoint,
+      API_FALLBACK: apiEndpoint,
       CHANNEL: "web",
       BUSINESS_TYPE: "blog",
-      LOCALE: LOCALE,
+      LOCALE: lastUserLang,
       SOUND_URL:
         "https://assets.zyrosite.com/YD0w46zZ5ZIrwlP8/new-notification-3-398649-RwIqiPPdJUta0dpV.mp3",
       SUBSCRIBE_URL: "https://novalink-ai.com/ashtrk-alan",
       SERVICES_URL: "https://novalink-ai.com/services-khdmat-nwfa-lynk",
       FEEDBACK_API: "",
-      CONTACT_EMAIL: "contact@novalink-ai.com",
+      CONTACT_EMAIL: "contact@novalink-ai.com"
     };
 
-    var WELCOME_HTML =
+    const WELCOME_HTML =
       "مرحباً بك في نوفا لينك 👋<br>" +
       "أنا نوفا بوت… جاهز لمساعدتك في أي سؤال حول الذكاء الاصطناعي وتطوير أعمالك.";
 
-    var STORAGE_KEY = "novabot_v6.9_conversation";
-    var STORAGE_TTL_MS = 12 * 60 * 60 * 1000;
+    const STORAGE_KEY = "novabot_v6.9_conversation";
+    const STORAGE_TTL_MS = 12 * 60 * 60 * 1000;
 
-    var fabBtn = root.getElementById("novaFabBtn");
-    var backdrop = root.getElementById("novaBackdrop");
-    var closeBtn = root.getElementById("novaCloseBtn");
-    var chatBody = root.getElementById("novaChatBody");
-    var input = root.getElementById("novaInput");
-    var sendBtn = root.getElementById("novaSendBtn");
+    let chatHistory = [];
+    let soundCount = 0;
+    let novaChatOpen = false;
+    let currentBotRow = null;
+    let typingIntervalId = null;
+    let isTypingAnimationActive = false;
+    const pendingCardCallbacks = [];
 
-    if (!fabBtn || !backdrop || !chatBody || !input || !sendBtn) {
-      console.error("[NovaBot] عناصر الواجهة غير مكتملة داخل ui.html");
-      return;
+    let subscribeCardShown = false;
+    let botCardShown = false;
+    let businessCardShown = false;
+    let collabCardShown = false;
+    let developerCardShown = false;
+
+    function detectLang(text) {
+      const hasArabic = /[\u0600-\u06FF]/.test(text);
+      const hasLatin = /[A-Za-z]/.test(text);
+      if (hasLatin && !hasArabic) return "en";
+      if (hasArabic && !hasLatin) return "ar";
+      return defaultLang;
     }
 
-    var chatHistory = [];
-    var soundCount = 0;
-    var novaChatOpen = false;
-
-    var currentBotRow = null;
-    var typingIntervalId = null;
-    var isTypingAnimationActive = false;
-    var pendingCardCallbacks = [];
-
-    var subscribeCardShown = false;
-    var botCardShown = false;
-    var businessCardShown = false;
-    var collabCardShown = false;
-
     function escapeHtml(str) {
-      return (str || "").replace(/[&<>"]/g, function (c) {
+      return (str || "").replace(/[&<>"]/g, (c) => {
         return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c] || c;
       });
     }
@@ -117,8 +102,8 @@
       if (!NOVA_CLIENT_CONFIG.SOUND_URL) return;
       if (soundCount >= 3) return;
       try {
-        var a = new Audio(NOVA_CLIENT_CONFIG.SOUND_URL);
-        a.play().catch(function () {});
+        const a = new Audio(NOVA_CLIENT_CONFIG.SOUND_URL);
+        a.play().catch(() => {});
         soundCount++;
       } catch (e) {}
     }
@@ -138,29 +123,30 @@
 
     function startThinkingBubble() {
       clearTypingState();
-      currentBotRow = document.createElement("div");
-      currentBotRow.className = "nova-msg-row nova-bot";
-      currentBotRow.innerHTML =
-        '<div class="nova-bubble nova-bubble-bot">' +
-        '  <div class="nova-bot-header">' +
-        '    <div class="nova-bot-header-icon">' +
-        '      <img src="https://assets.zyrosite.com/YD0w46zZ5ZIrwlP8/novabot-2-f081v1SXHunuZjwP.png" alt="NovaBot" />' +
-        "    </div>" +
-        '    <div class="nova-bot-name">NOVABOT</div>' +
-        "  </div>" +
-        '  <div class="nova-bubble-content">' +
-        '    <div class="nova-typing">' +
-        "      <span>نوفا بوت يكتب الآن</span>" +
-        '      <span class="nova-typing-dots">' +
-        '        <span class="nova-dot-typing"></span>' +
-        '        <span class="nova-dot-typing"></span>' +
-        '        <span class="nova-dot-typing"></span>' +
-        "      </span>" +
-        "    </div>" +
-        "  </div>" +
-        "</div>";
-
-      chatBody.appendChild(currentBotRow);
+      const row = document.createElement("div");
+      row.className = "nova-msg-row nova-bot";
+      row.innerHTML = `
+        <div class="nova-bubble nova-bubble-bot">
+          <div class="nova-bot-header">
+            <div class="nova-bot-header-icon">
+              <img src="https://assets.zyrosite.com/YD0w46zZ5ZIrwlP8/novabot-2-f081v1SXHunuZjwP.png" alt="NovaBot" />
+            </div>
+            <div class="nova-bot-name">NOVABOT</div>
+          </div>
+          <div class="nova-bubble-content">
+            <div class="nova-typing">
+              <span>نوفا بوت يكتب الآن</span>
+              <span class="nova-typing-dots">
+                <span class="nova-dot-typing"></span>
+                <span class="nova-dot-typing"></span>
+                <span class="nova-dot-typing"></span>
+              </span>
+            </div>
+          </div>
+        </div>
+      `;
+      currentBotRow = row;
+      chatBody.appendChild(row);
       scrollToBottom();
     }
 
@@ -172,22 +158,20 @@
     }
 
     function typeReplyInCurrentBubble(html) {
-      if (!currentBotRow) {
-        startThinkingBubble();
-      }
-      var contentEl = currentBotRow.querySelector(".nova-bubble-content");
+      if (!currentBotRow) startThinkingBubble();
+      const contentEl = currentBotRow.querySelector(".nova-bubble-content");
       if (!contentEl) return;
 
       clearTypingState();
 
-      var full = (html || "").toString();
-      var length = full.length || 1;
-      var speed = computeTypingSpeed(length);
+      const full = (html || "").toString();
+      const length = full.length || 1;
+      const speed = computeTypingSpeed(length);
 
-      var i = 0;
+      let i = 0;
       isTypingAnimationActive = true;
 
-      typingIntervalId = setInterval(function () {
+      typingIntervalId = setInterval(() => {
         contentEl.innerHTML = full.slice(0, i);
         i++;
         scrollToBottom();
@@ -197,41 +181,41 @@
           isTypingAnimationActive = false;
           playNovaSound();
           while (pendingCardCallbacks.length > 0) {
-            var cb = pendingCardCallbacks.shift();
+            const cb = pendingCardCallbacks.shift();
             try {
               cb();
-            } catch (e) {}
+            } catch (_) {}
           }
         }
       }, speed);
     }
 
     function addUserMessage(text) {
-      var row = document.createElement("div");
+      const row = document.createElement("div");
       row.className = "nova-msg-row nova-user";
-      row.innerHTML =
-        '<div class="nova-bubble nova-bubble-user">' +
-        escapeHtml(text) +
-        "</div>";
+      row.innerHTML = `
+        <div class="nova-bubble nova-bubble-user">
+          ${escapeHtml(text)}
+        </div>
+      `;
       chatBody.appendChild(row);
       scrollToBottom();
     }
 
     function addStaticBotMessage(html) {
-      var row = document.createElement("div");
+      const row = document.createElement("div");
       row.className = "nova-msg-row nova-bot";
-      row.innerHTML =
-        '<div class="nova-bubble nova-bubble-bot">' +
-        '  <div class="nova-bot-header">' +
-        '    <div class="nova-bot-header-icon">' +
-        '      <img src="https://assets.zyrosite.com/YD0w46zZ5ZIrwlP8/novabot-2-f081v1SXHunuZjwP.png" alt="NovaBot" />' +
-        "    </div>" +
-        '    <div class="nova-bot-name">NOVABOT</div>' +
-        "  </div>" +
-        '  <div class="nova-bubble-content">' +
-        html +
-        "</div>" +
-        "</div>";
+      row.innerHTML = `
+        <div class="nova-bubble nova-bubble-bot">
+          <div class="nova-bot-header">
+            <div class="nova-bot-header-icon">
+              <img src="https://assets.zyrosite.com/YD0w46zZ5ZIrwlP8/novabot-2-f081v1SXHunuZjwP.png" alt="NovaBot" />
+            </div>
+            <div class="nova-bot-name">NOVABOT</div>
+          </div>
+          <div class="nova-bubble-content">${html}</div>
+        </div>
+      `;
       currentBotRow = row;
       chatBody.appendChild(row);
       scrollToBottom();
@@ -239,24 +223,21 @@
     }
 
     async function callNovaApi(message) {
+      if (!apiEndpoint) {
+        return { ok: false, reply: "" };
+      }
       try {
-        var response = await fetch(NOVA_CLIENT_CONFIG.API_PRIMARY, {
+        const response = await fetch(apiEndpoint, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ message: message }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message })
         });
-
-        if (!response.ok) {
-          return { ok: false, reply: "" };
-        }
-
-        var data = await response.json();
+        if (!response.ok) return { ok: false, reply: "" };
+        const data = await response.json();
         return {
           ok: !!data.ok,
-          reply: data.reply,
-          actionCard: data.actionCard || null,
+          reply: data.reply || "",
+          actionCard: data.actionCard || null
         };
       } catch (e) {
         console.error("❌ NovaBot API Error:", e);
@@ -267,19 +248,19 @@
     function appendCardInsideLastBotBubble(cardEl) {
       if (!cardEl) return;
 
-      var doAppend = function () {
-        var botRows = chatBody.querySelectorAll(".nova-msg-row.nova-bot");
-        var lastBot = botRows[botRows.length - 1];
+      const doAppend = () => {
+        const botRows = chatBody.querySelectorAll(".nova-msg-row.nova-bot");
+        const lastBot = botRows[botRows.length - 1];
         if (!lastBot) {
           chatBody.appendChild(cardEl);
           scrollToBottom();
           return;
         }
-        var contentEl = lastBot.querySelector(".nova-bubble-content");
+        const contentEl = lastBot.querySelector(".nova-bubble-content");
         if (!contentEl) {
           lastBot.insertAdjacentElement("afterend", cardEl);
         } else {
-          var sep = document.createElement("div");
+          const sep = document.createElement("div");
           sep.className = "nova-card-separator";
           contentEl.appendChild(sep);
           contentEl.appendChild(cardEl);
@@ -295,44 +276,48 @@
     }
 
     function createSubscribeCard(type) {
-      var card = document.createElement("div");
-      card.className = "nova-card";
+      const card = document.createElement("div");
+      card.className = "nova-card nova-anim";
 
-      var isBusiness = type === "business";
+      const isBusiness = type === "business";
 
-      var title = isBusiness ? "📧 طوّر عملك خطوة بخطوة" : "📧 اشترك في نوفا لينك";
-      var text = isBusiness
+      const title = isBusiness
+        ? "📧 طوّر عملك خطوة بخطوة"
+        : "📧 اشترك في نوفا لينك";
+
+      const text = isBusiness
         ? "إذا كان تطوّر أعمالك يهمك فعلاً، فمتابعة التحديثات في الذكاء الاصطناعي للأعمال ليست رفاهية. اترك بريدك لتصلك أحدث المقالات والأفكار التي تركّز على النتائج، لا الضجيج."
         : "ابدأ رحلتك معنا… نحو إنتاجيةٍ تنمو كل يوم. ✨";
 
-      card.innerHTML =
-        '<div class="nova-card-header">' + title + "</div>" +
-        '<div class="nova-card-text">' + text + "</div>" +
-        '<input type="email" class="nova-card-input" placeholder="example@email.com" />' +
-        '<div class="nova-card-actions">' +
-        '  <button class="nova-card-btn nova-card-btn-primary">اشتراك</button>' +
-        '  <button class="nova-card-btn nova-card-btn-secondary" type="button">' +
-        (isBusiness ? "زيارة صفحة الخدمات" : "زيارة صفحة الاشتراك") +
-        "  </button>" +
-        "</div>" +
-        '<div class="nova-card-note">' +
-        "يمكنك إلغاء الاشتراك في أي وقت من خلال الرابط الموجود في رسائل البريد." +
-        "</div>";
+      card.innerHTML = `
+        <div class="nova-card-header">${title}</div>
+        <div class="nova-card-text">${text}</div>
+        <input type="email" class="nova-card-input" placeholder="example@email.com" />
+        <div class="nova-card-actions">
+          <button class="nova-card-btn nova-card-btn-primary">اشتراك</button>
+          <button class="nova-card-btn nova-card-btn-secondary" type="button">
+            ${isBusiness ? "زيارة صفحة الخدمات" : "زيارة صفحة الاشتراك"}
+          </button>
+        </div>
+        <div class="nova-card-note">
+          يمكنك إلغاء الاشتراك في أي وقت من خلال الرابط الموجود في رسائل البريد.
+        </div>
+      `;
 
-      var emailInput = card.querySelector(".nova-card-input");
-      var btnPrimary = card.querySelector(".nova-card-btn-primary");
-      var btnSecondary = card.querySelector(".nova-card-btn-secondary");
+      const emailInput = card.querySelector(".nova-card-input");
+      const btnPrimary = card.querySelector(".nova-card-btn-primary");
+      const btnSecondary = card.querySelector(".nova-card-btn-secondary");
 
-      btnSecondary.addEventListener("click", function () {
-        var url = isBusiness
+      btnSecondary.addEventListener("click", () => {
+        const url = isBusiness
           ? NOVA_CLIENT_CONFIG.SERVICES_URL
           : NOVA_CLIENT_CONFIG.SUBSCRIBE_URL;
         window.open(url, "_blank");
       });
 
-      btnPrimary.addEventListener("click", function () {
-        var email = (emailInput.value || "").trim();
-        if (!email || email.indexOf("@") === -1) {
+      btnPrimary.addEventListener("click", async () => {
+        const email = (emailInput.value || "").trim();
+        if (!email || !email.includes("@")) {
           alert("الرجاء إدخال بريد إلكتروني صالح.");
           return;
         }
@@ -342,19 +327,25 @@
 
         if (NOVA_CLIENT_CONFIG.FEEDBACK_API) {
           try {
-            fetch(NOVA_CLIENT_CONFIG.FEEDBACK_API, {
+            await fetch(NOVA_CLIENT_CONFIG.FEEDBACK_API, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 type: "subscribe",
-                email: email,
-                intent: isBusiness ? "business_subscribe" : "newsletter_subscribe",
-                source: isBusiness ? "novabot-business-card" : "novabot-subscribe-card",
+                email,
+                intent: isBusiness
+                  ? "business_subscribe"
+                  : "newsletter_subscribe",
+                source: isBusiness
+                  ? "novabot-business-card"
+                  : "novabot-subscribe-card",
                 url: window.location.href,
-                createdAt: new Date().toISOString(),
-              }),
-            }).catch(function () {});
-          } catch (e) {}
+                createdAt: new Date().toISOString()
+              })
+            });
+          } catch (e) {
+            console.warn("⚠️ Feedback API error:", e);
+          }
         }
 
         btnPrimary.textContent = "تم الاشتراك ✅";
@@ -364,44 +355,40 @@
     }
 
     function createBotLeadCard() {
-      var card = document.createElement("div");
-      card.className = "nova-card";
+      const card = document.createElement("div");
+      card.className = "nova-card nova-anim";
 
-      card.innerHTML =
-        '<div class="nova-card-header">📧 بوت دردشة لعملك</div>' +
-        '<div class="nova-card-text">' +
-        "إذا تخيّلت أن موقعك أو مشروعك يملك نوفا بوت خاصًا به يرد على عملائك، يشرح خدماتك،" +
-        " ويقترح عليهم ما يناسبهم… فهذا بالضبط ما يمكن أن نبنيه معك في نوفا لينك.<br><br>" +
-        "اترك بريدك أو رقم واتساب وسنرتّب معك استشارة تعريفية مجانية قصيرة." +
-        "</div>" +
-        '<input type="text" class="nova-card-input" placeholder="بريدك الإلكتروني أو رقم واتساب" />' +
-        '<div class="nova-card-actions">' +
-        '  <button class="nova-card-btn nova-card-btn-primary">احجز استشارتك المجانية</button>' +
-        "</div>" +
-        '<div class="nova-card-note">' +
-        "سيتم فتح رسالة بريد جاهزة لتأكيد طلبك، ويمكنك تعديلها قبل الإرسال." +
-        "</div>";
+      card.innerHTML = `
+        <div class="nova-card-header">📧 بوت دردشة لعملك</div>
+        <div class="nova-card-text">
+          إذا تخيّلت أن موقعك أو مشروعك يملك نوفا بوت خاصًا به يرد على عملائك، يشرح خدماتك،
+          ويقترح عليهم ما يناسبهم… فهذا بالضبط ما يمكن أن نبنيه معك في نوفا لينك.<br><br>
+          اترك بريدك أو رقم واتساب وسنرتّب معك استشارة تعريفية مجانية قصيرة.
+        </div>
+        <input type="text" class="nova-card-input" placeholder="بريدك الإلكتروني أو رقم واتساب" />
+        <div class="nova-card-actions">
+          <button class="nova-card-btn nova-card-btn-primary">احجز استشارتك المجانية</button>
+        </div>
+        <div class="nova-card-note">
+          سيتم فتح رسالة بريد جاهزة لتأكيد طلبك، ويمكنك تعديلها قبل الإرسال.
+        </div>
+      `;
 
-      var contactInput = card.querySelector(".nova-card-input");
-      var btn = card.querySelector(".nova-card-btn-primary");
+      const contactInput = card.querySelector(".nova-card-input");
+      const btn = card.querySelector(".nova-card-btn-primary");
 
-      btn.addEventListener("click", function () {
-        var contact = (contactInput.value || "").trim();
+      btn.addEventListener("click", () => {
+        const contact = (contactInput.value || "").trim();
         if (!contact) {
           alert("الرجاء إدخال بريد إلكتروني أو رقم واتساب للتواصل معك.");
           return;
         }
 
-        var subject = encodeURIComponent(
+        const subject = encodeURIComponent(
           "NovaBot Lead – طلب استشارة حول بوت دردشة"
         );
-        var body = encodeURIComponent(
-          "مرحبًا فريق نوفا لينك,\n\n" +
-            "أرغب في استشارة مجانية حول إنشاء بوت دردشة بالذكاء الاصطناعي لمشروعي.\n\n" +
-            "بيانات التواصل:\n" +
-            contact +
-            "\n\n" +
-            "تم إرسال هذا الطلب عبر نوفا بوت على موقع نوفا لينك."
+        const body = encodeURIComponent(
+          `مرحبًا فريق نوفا لينك,\n\nأرغب في استشارة مجانية حول إنشاء بوت دردشة بالذكاء الاصطناعي لمشروعي.\n\nبيانات التواصل:\n${contact}\n\nتم إرسال هذا الطلب عبر نوفا بوت على موقع نوفا لينك.`
         );
 
         if (NOVA_CLIENT_CONFIG.FEEDBACK_API) {
@@ -412,22 +399,16 @@
               body: JSON.stringify({
                 type: "lead",
                 channel: "bot",
-                contact: contact,
+                contact,
                 source: "novabot-bot-lead-card",
                 url: window.location.href,
-                createdAt: new Date().toISOString(),
-              }),
-            }).catch(function () {});
+                createdAt: new Date().toISOString()
+              })
+            }).catch(() => {});
           } catch (e) {}
         }
 
-        window.location.href =
-          "mailto:" +
-          NOVA_CLIENT_CONFIG.CONTACT_EMAIL +
-          "?subject=" +
-          subject +
-          "&body=" +
-          body;
+        window.location.href = `mailto:${NOVA_CLIENT_CONFIG.CONTACT_EMAIL}?subject=${subject}&body=${body}`;
       });
 
       return card;
@@ -438,33 +419,29 @@
     }
 
     function createCollaborationCard() {
-      var card = document.createElement("div");
-      card.className = "nova-card";
+      const card = document.createElement("div");
+      card.className = "nova-card nova-anim";
 
-      card.innerHTML =
-        '<div class="nova-card-header">📧 تعاون وشراكات مع نوفا لينك</div>' +
-        '<div class="nova-card-text">' +
-        "نوفا لينك منفتحة على التعاونات المهنية الجادة: رعاية محتوى، شراكات، ورش عمل، أو مشاريع مشتركة" +
-        " ترتبط بالذكاء الاصطناعي للأعمال وتطوير المهارات.<br><br>" +
-        "إذا كان لديك فكرة تعاون واضحة، يسعدنا أن نسمعها منك." +
-        "</div>" +
-        '<div class="nova-card-actions">' +
-        '  <button class="nova-card-btn nova-card-btn-primary">تواصل عبر البريد</button>' +
-        "</div>" +
-        '<div class="nova-card-note">' +
-        "برجاء توضيح نوع التعاون المقترح، والفئة المستهدفة، وأي تفاصيل إضافية." +
-        "</div>";
+      card.innerHTML = `
+        <div class="nova-card-header">📧 تعاون وشراكات مع نوفا لينك</div>
+        <div class="nova-card-text">
+          نوفا لينك منفتحة على التعاونات المهنية الجادة: رعاية محتوى، شراكات، ورش عمل، أو مشاريع مشتركة
+          ترتبط بالذكاء الاصطناعي للأعمال وتطوير المهارات.<br><br>
+          إذا كان لديك فكرة تعاون واضحة، يسعدنا أن نسمعها منك.
+        </div>
+        <div class="nova-card-actions">
+          <button class="nova-card-btn nova-card-btn-primary">تواصل عبر البريد</button>
+        </div>
+        <div class="nova-card-note">
+          برجاء توضيح نوع التعاون المقترح، والفئة المستهدفة، وأي تفاصيل إضافية.
+        </div>
+      `;
 
-      var btn = card.querySelector(".nova-card-btn-primary");
-      btn.addEventListener("click", function () {
-        var subject = encodeURIComponent("NovaLink Collaboration Opportunity");
-        var body = encodeURIComponent(
-          "مرحبًا فريق نوفا لينك,\n\n" +
-            "أود مناقشة فرصة تعاون/شراكة معكم.\n\n" +
-            "نوع التعاون المقترح:\n\n" +
-            "الجمهور المستهدف:\n\n" +
-            "تفاصيل إضافية:\n\n" +
-            "تم إرسال هذا الطلب عبر نوفا بوت على موقع نوفا لينك."
+      const btn = card.querySelector(".nova-card-btn-primary");
+      btn.addEventListener("click", () => {
+        const subject = encodeURIComponent("NovaLink Collaboration Opportunity");
+        const body = encodeURIComponent(
+          `مرحبًا فريق نوفا لينك,\n\nأود مناقشة فرصة تعاون/شراكة معكم.\n\nنوع التعاون المقترح:\n\nالجمهور المستهدف:\n\nتفاصيل إضافية:\n\nتم إرسال هذا الطلب عبر نوفا بوت على موقع نوفا لينك.`
         );
 
         if (NOVA_CLIENT_CONFIG.FEEDBACK_API) {
@@ -476,27 +453,44 @@
                 type: "collaboration_interest",
                 source: "novabot-collab-card",
                 url: window.location.href,
-                createdAt: new Date().toISOString(),
-              }),
-            }).catch(function () {});
+                createdAt: new Date().toISOString()
+              })
+            }).catch(() => {});
           } catch (e) {}
-
         }
 
-        window.location.href =
-          "mailto:" +
-          NOVA_CLIENT_CONFIG.CONTACT_EMAIL +
-          "?subject=" +
-          subject +
-          "&body=" +
-          body;
+        window.location.href = `mailto:${NOVA_CLIENT_CONFIG.CONTACT_EMAIL}?subject=${subject}&body=${body}`;
       });
 
       return card;
     }
 
+    // بطاقة المطوّر الخامسة – Developer Identity
+    function createDeveloperCard() {
+      const lang = lastUserLang === "en" ? "en" : "ar";
+      const card = document.createElement("div");
+      card.className = "nova-card nova-anim";
+
+      const title =
+        lang === "en"
+          ? "👨‍💻 Who Built NovaBot?"
+          : "👨‍💻 من يقف خلف نوفا بوت؟";
+
+      const text =
+        lang === "en"
+          ? "“Mohammed Abu Sunaina — a developer who blended banking experience with artificial intelligence.\nHe is building NovaLink as a practical space that helps entrepreneurs use smart tools with clarity and confidence.”"
+          : "“محمد أبو سنينة—مطور عربي جمع خبرته بين العمل المصرفي والذكاء الاصطناعي.\nيبني نوفا لينك كمساحة عملية تساعد روّاد الأعمال على استخدام الأدوات الذكية بثقة ووضوح.”";
+
+      card.innerHTML = `
+        <div class="nova-card-header">${title}</div>
+        <div class="nova-card-text">${text.replace(/\n/g, "<br>")}</div>
+      `;
+
+      return card;
+    }
+
     function showCardByType(cardType) {
-      var card = null;
+      let card = null;
 
       switch (cardType) {
         case "subscribe":
@@ -519,6 +513,11 @@
           collabCardShown = true;
           card = createCollaborationCard();
           break;
+        case "developer_identity":
+          if (developerCardShown) return;
+          developerCardShown = true;
+          card = createDeveloperCard();
+          break;
         default:
           return;
       }
@@ -528,9 +527,9 @@
 
     function saveConversation() {
       try {
-        var payload = {
+        const payload = {
           ts: Date.now(),
-          history: chatHistory.slice(-25),
+          history: chatHistory.slice(-25)
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       } catch (e) {}
@@ -538,9 +537,9 @@
 
     function restoreConversationIfFresh() {
       try {
-        var raw = localStorage.getItem(STORAGE_KEY);
+        const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
-        var data = JSON.parse(raw);
+        const data = JSON.parse(raw);
         if (!data || !data.ts || !Array.isArray(data.history)) return;
         if (Date.now() - data.ts > STORAGE_TTL_MS) {
           localStorage.removeItem(STORAGE_KEY);
@@ -548,7 +547,7 @@
         }
         chatHistory = data.history;
 
-        chatHistory.forEach(function (msg) {
+        chatHistory.forEach((msg) => {
           if (msg.role === "user") {
             addUserMessage(msg.content || "");
           } else if (msg.role === "assistant") {
@@ -562,9 +561,10 @@
 
     function autoResizeTextarea() {
       input.style.height = "auto";
-      var newHeight = Math.min(96, Math.max(32, input.scrollHeight));
+      const newHeight = Math.min(96, Math.max(32, input.scrollHeight));
       input.style.height = newHeight + "px";
     }
+
     input.addEventListener("input", autoResizeTextarea);
 
     function openChat() {
@@ -585,33 +585,32 @@
       } catch (e) {}
 
       if (!chatHistory.length) {
-        setTimeout(function () {
+        setTimeout(() => {
           startThinkingBubble();
-          setTimeout(function () {
+          setTimeout(() => {
             typeReplyInCurrentBubble(WELCOME_HTML);
             chatHistory.push({
               role: "assistant",
-              content: WELCOME_HTML.replace(/<br>/g, "\n"),
+              content: WELCOME_HTML.replace(/<br>/g, "\n")
             });
             saveConversation();
           }, 900);
         }, 400);
       }
 
-      setTimeout(function () {
+      setTimeout(() => {
         input.focus();
       }, isSmallScreen() ? 350 : 200);
     }
 
-    function closeChat(options) {
-      options = options || { fromBack: false };
+    function closeChat(options = { fromBack: false }) {
       if (!novaChatOpen) return;
       novaChatOpen = false;
 
       backdrop.classList.remove("nova-open");
       backdrop.setAttribute("aria-hidden", "true");
 
-      setTimeout(function () {
+      setTimeout(() => {
         if (isSmallScreen()) {
           fabBtn.classList.remove("nova-hidden");
         }
@@ -627,8 +626,11 @@
     }
 
     async function handleSend() {
-      var text = (input.value || "").trim();
+      const text = (input.value || "").trim();
       if (!text) return;
+
+      lastUserLang = detectLang(text);
+      NOVA_CLIENT_CONFIG.LOCALE = lastUserLang;
 
       addUserMessage(text);
       chatHistory.push({ role: "user", content: text });
@@ -641,30 +643,26 @@
 
       startThinkingBubble();
 
-      var result;
+      let result;
       try {
-        var apiPromise = callNovaApi(text);
-        var minDelayMs = 900 + Math.random() * 600;
+        const apiPromise = callNovaApi(text);
+        const minDelayMs = 900 + Math.random() * 600;
 
-        var apiResArr = await Promise.all([
+        const [apiRes] = await Promise.all([
           apiPromise,
-          new Promise(function (resolve) {
-            setTimeout(resolve, minDelayMs);
-          }),
+          new Promise((resolve) => setTimeout(resolve, minDelayMs))
         ]);
 
-        result = apiResArr[0] || {};
+        result = apiRes || {};
       } catch (e) {
         console.error("❌ NovaBot error:", e);
-        result = {
-          ok: false,
-          reply: "",
-        };
+        result = { ok: false, reply: "" };
       } finally {
         sendBtn.disabled = false;
       }
 
-      var replyText = "";
+      let replyText = "";
+
       if (result && result.ok && result.reply) {
         replyText = (result.reply || "").toString();
       } else {
@@ -674,12 +672,20 @@
           "إلى أن يتم ذلك، يمكنك استكشاف مقالات نوفا لينك للحصول على أفكار عملية إضافية.";
       }
 
-      var replyHtml = replyText.replace(/\n/g, "<br>").trim();
+      // حالة بطاقة المطوّر: نستخدم نص خاص بدل نص الـ API
+      if (result && result.actionCard === "developer_identity") {
+        replyText =
+          lastUserLang === "en"
+            ? "✨ This is a quick identity card for the person who built and trained NovaBot — a short glimpse into the human behind the technology."
+            : "✨ هذه بطاقة تعريف سريعة بالشخص الذي طوّر نوفا بوت ودرّبه… لمحة خفيفة عن الإنسان خلف التقنية.";
+      }
+
+      const replyHtml = replyText.replace(/\n/g, "<br>").trim();
       typeReplyInCurrentBubble(replyHtml);
 
       chatHistory.push({
         role: "assistant",
-        content: replyText,
+        content: replyText
       });
       saveConversation();
 
@@ -688,7 +694,7 @@
       }
     }
 
-    fabBtn.addEventListener("click", function () {
+    fabBtn.addEventListener("click", () => {
       if (novaChatOpen) {
         closeChat();
       } else {
@@ -696,22 +702,20 @@
       }
     });
 
-    closeBtn.addEventListener("click", function () {
-      closeChat();
-    });
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => closeChat());
+    }
 
-    backdrop.addEventListener("click", function (e) {
+    backdrop.addEventListener("click", (e) => {
       if (e.target === backdrop) {
         closeChat();
       }
     });
 
-    setInterval(function () {
+    setInterval(() => {
       if (!novaChatOpen) {
         fabBtn.classList.add("nova-idle");
-        setTimeout(function () {
-          fabBtn.classList.remove("nova-idle");
-        }, 900);
+        setTimeout(() => fabBtn.classList.remove("nova-idle"), 900);
       }
     }, 9000);
 
@@ -731,11 +735,5 @@
     });
 
     restoreConversationIfFresh();
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
-    init();
   }
 })();
