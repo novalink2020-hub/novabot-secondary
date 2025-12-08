@@ -1,5 +1,6 @@
 /* ==========================================================
-   NovaBot v6.9.7 – UI Styles (Shadow DOM – SaaS Ultra)
+   NovaBot v6.9.x – UI Styles (Shadow DOM)
+   متوافق مع Tajawal + وضع ليلي افتراضي + وضع نهاري للموبايل/تابلت
    ========================================================== */
 
 /* تحميل خط Tajawal داخل الـ Shadow DOM */
@@ -29,8 +30,8 @@
   bottom: 20px;
   right: 20px;
   z-index: 9999;
-  width: clamp(74px, 13vw, 98px);
-  height: clamp(74px, 13vw, 98px);
+  width: clamp(72px, 13vw, 96px);
+  height: clamp(72px, 13vw, 96px);
   border-radius: 999px;
   border: none;
   padding: 0;
@@ -111,7 +112,7 @@
   margin: 16px 16px 110px 16px;
   width: min(420px, 100vw - 32px);
   height: min(560px, 80vh);
-  border-radius: 20px;
+  border-radius: 18px;
   background: radial-gradient(circle at 0% 0%, #132033, #050b14 60%);
   border: 1px solid rgba(192, 209, 224, 0.22);
   box-shadow:
@@ -137,13 +138,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
-  margin: 8px 8px 6px 8px;
-  border-radius: 18px;
+  padding: 6px 12px;
+  margin: 8px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #0c1724, #152a40);
   color: #ffffff;
   direction: rtl;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.48);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
   position: relative;
   z-index: 4;
 }
@@ -153,16 +154,17 @@
   gap: 8px;
 }
 .nova-header-avatar {
-  width: 38px;
-  height: 54px;
+  width: 36px;
+  height: 52px;
   border-radius: 999px;
   overflow: hidden;
   background: rgba(7, 15, 24, 0.95);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.8px solid rgba(254, 147, 14, 0.85);
+  border: 1.6px solid rgba(254, 147, 14, 0.8);
   padding: 2px;
+  box-shadow: 0 0 12px rgba(254, 147, 14, 0.45);
 }
 .nova-header-avatar img {
   width: 100%;
@@ -180,7 +182,7 @@
   letter-spacing: 0.02em;
 }
 .nova-header-subtitle {
-  font-size: 11.5px;
+  font-size: 12px;
   color: rgba(233, 243, 255, 0.86);
   display: flex;
   align-items: center;
@@ -211,7 +213,7 @@
   background: transparent;
   border: none;
   color: rgba(249, 251, 255, 0.9);
-  font-size: 20px;
+  font-size: 19px;
   cursor: pointer;
   padding: 4px;
   border-radius: 999px;
@@ -226,7 +228,7 @@
 /* ============ جسم المحادثة ============ */
 .nova-chat-body {
   flex: 1;
-  padding: 10px 13px 90px 13px;
+  padding: 8px 12px 82px 12px;
   overflow-y: auto;
   direction: rtl;
   background: linear-gradient(
@@ -252,7 +254,7 @@
 /* ============ فقاعات الرسائل ============ */
 .nova-msg-row {
   display: flex;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .nova-msg-row.nova-user {
   justify-content: flex-end;
@@ -261,14 +263,14 @@
   justify-content: flex-start;
 }
 .nova-msg-row + .nova-msg-row {
-  margin-top: 6px;
+  margin-top: 4px;
 }
 .nova-bubble {
-  max-width: 80%;
-  padding: 11px 13px;
-  border-radius: 16px;
+  max-width: 78%;
+  padding: 10px 12px;
+  border-radius: 14px;
   font-size: 15px;
-  line-height: 1.8;
+  line-height: 1.7;
   word-wrap: break-word;
   word-break: break-word;
 }
@@ -369,17 +371,20 @@
   bottom: 0;
   padding: 8px 10px 12px 10px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
   flex-direction: row-reverse;
-  /* شفافية متدرجة بدون blur – أسلوب ChatGPT */
   background: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0.00) 0%,
-    rgba(0, 0, 0, 0.22) 55%,
-    rgba(0, 0, 0, 0.38) 100%
+    rgba(0, 0, 0, 0.25) 55%,
+    rgba(0, 0, 0, 0.45) 100%
   );
   z-index: 3;
+
+  /* تعديل البلار: يمكن تغيير القيمة إلى 0 لإلغاء البلار */
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 .nova-input-wrapper {
   position: relative;
@@ -429,7 +434,7 @@
   padding: 9px 13px;
   background: linear-gradient(135deg, #fe930e, #ffb24c);
   color: #10171f;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
@@ -441,8 +446,8 @@
     box-shadow 0.15s ease,
     filter 0.15s ease,
     opacity 0.15s ease;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 42px;
+  min-height: 42px;
 }
 .nova-send-btn:hover {
   transform: translateY(-1px);
@@ -477,9 +482,9 @@
 
 /* ============ البطاقات ============ */
 .nova-card {
-  margin-top: 10px;
-  padding: 11px 13px;
-  border-radius: 13px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
   border: 1px solid rgba(192, 209, 224, 0.35);
   background: rgba(10, 22, 36, 0.97);
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
@@ -492,10 +497,10 @@
   font-weight: 700;
   margin-bottom: 6px;
   color: #f5f7ff;
-  font-size: 15.5px;
+  font-size: 15px;
 }
 .nova-card-text {
-  font-size: 14.5px;
+  font-size: 14px;
   color: rgba(222, 234, 248, 0.95);
   margin-bottom: 8px;
 }
@@ -567,11 +572,11 @@
     height: 55dvh;
   }
   .nova-header-avatar {
-    width: 34px;
-    height: 50px;
+    width: 32px;
+    height: 48px;
   }
   .nova-header-title {
-    font-size: 14.5px;
+    font-size: 14px;
   }
   .nova-header-subtitle {
     font-size: 11.5px;
@@ -591,7 +596,7 @@
   .nova-chat-header {
     background: linear-gradient(135deg, #ffffff, #e7f0fb);
     color: var(--nova-blue-deep);
-    box-shadow: 0 8px 18px rgba(27, 87, 124, 0.18);
+    box-shadow: 0 6px 14px rgba(27, 87, 124, 0.18);
   }
 
   .nova-header-title,
@@ -600,8 +605,19 @@
     color: var(--nova-blue-deep);
   }
 
-  .nova-header-avatar {
-    background: #1b577c;
+  .nova-header-chip {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--nova-blue-deep);
+    border-color: rgba(27, 87, 124, 0.3);
+    font-weight: 600;
+  }
+
+  .nova-header-close {
+    color: var(--nova-blue-deep);
+  }
+  .nova-header-close:hover {
+    background: rgba(27, 87, 124, 0.08);
+    color: var(--nova-blue-deep);
   }
 
   .nova-chat-body {
@@ -625,6 +641,7 @@
     color: #ffffff;
   }
 
+  .nova-typing,
   .nova-typing span {
     color: var(--nova-blue-deep);
   }
@@ -677,6 +694,10 @@
       rgba(255, 255, 255, 0.30) 55%,
       rgba(255, 255, 255, 0.60) 100%
     );
+
+    /* تعديل البلار للوضع النهاري أيضًا من نفس المكان */
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
   }
 
   .nova-bubble-content a {
@@ -684,75 +705,5 @@
   }
   .nova-bubble-content a:hover {
     color: var(--nova-orange);
-  }
-
-  .nova-header-close {
-    color: var(--nova-blue-deep);
-  }
-}
-
-/* =======================================
-   المرحلة الأولى – تحسينات الوضع النهاري
-   ======================================= */
-
-/* 1) لون نص NOVABOT داخل فقاعة نوفا بوت */
-@media (max-width: 1024px) and (prefers-color-scheme: light) {
-  .nova-bot-name {
-    color: #0b1a2a !important; /* أزرق داكن واضح */
-    font-weight: 700;
-  }
-
-  .nova-bot-header-icon {
-    background: #1b577c !important; /* نفس خلفية الوضع الليلي */
-    border: 2px solid #fe930e !important; /* ظل برتقالي خفيف للإطار */
-  }
-}
-
-/* 2) تحسين وضوح النسخة في الهيدر */
-@media (max-width: 1024px) and (prefers-color-scheme: light) {
-  .nova-header-chip {
-    color: #0b1a2a !important;
-    border-color: rgba(27, 87, 124, 0.35) !important;
-    font-weight: 600;
-  }
-}
-
-/* 3) ضبط مكان زر × داخل الهيدر */
-.nova-header-close {
-  margin-right: 2px !important;
-  margin-left: 2px !important;
-  transform: translateY(0) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-@media (max-width: 1024px) {
-  .nova-header-actions {
-    gap: 4px !important;
-  }
-
-  .nova-header-close {
-    font-size: 20px !important;
-    padding: 6px !important;
-  }
-}
-
-/* 4) الهوفر البرتقالي على الروابط داخل فقاعة نوفا بوت */
-@media (max-width: 1024px) and (prefers-color-scheme: light) {
-  .nova-bubble-content a {
-    color: #1b577c !important; /* أزرق أساسي */
-  }
-  .nova-bubble-content a:hover {
-    color: #fe930e !important; /* برتقالي عند الهوفر */
-  }
-}
-
-/* 5) خلفية صورة نوفا بوت في الهيدر – الوضع النهاري */
-@media (max-width: 1024px) and (prefers-color-scheme: light) {
-  .nova-header-avatar {
-    background: linear-gradient(135deg, #132033, #0b1824) !important; /* نفس الخلفية الداكنة */
-    border: 2px solid #fe930e !important; /* إطار برتقالي مع ظل بسيط */
-    box-shadow: 0 0 10px rgba(254, 147, 14, 0.35) !important;
   }
 }
