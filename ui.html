@@ -1,6 +1,7 @@
-<div id="novaRoot" class="nova-root">
+<!-- NovaBot v6.9.x – Shadow DOM UI -->
+<div class="nova-root" dir="rtl">
   <!-- الزر العائم -->
-  <button class="nova-fab" id="novaFabBtn" aria-label="Open NovaBot chat">
+  <button class="nova-fab" id="novaFabBtn" aria-label="فتح دردشة نوفا بوت">
     <div class="nova-fab-inner">
       <img
         src="https://assets.zyrosite.com/YD0w46zZ5ZIrwlP8/uo3osso1o--uuuoss-ossuodeguu-1-fUS15tGQu2AgbmOA.gif"
@@ -9,9 +10,9 @@
     </div>
   </button>
 
-  <!-- خلفية نافذة الدردشة -->
+  <!-- الخلفية + نافذة المحادثة -->
   <div class="nova-chat-backdrop" id="novaBackdrop" aria-hidden="true">
-    <div class="nova-chat-shell" dir="rtl">
+    <div class="nova-chat-shell">
       <!-- الهيدر -->
       <header class="nova-chat-header">
         <div class="nova-header-left">
@@ -31,11 +32,11 @@
         </div>
 
         <div class="nova-header-actions">
-          <div class="nova-header-chip">NovaBot v6.9.4</div>
+          <div class="nova-header-chip">NovaBot v6.9.x</div>
           <button
             class="nova-header-close"
             id="novaCloseBtn"
-            aria-label="إغلاق المحادثة"
+            aria-label="إغلاق الدردشة"
           >
             ✕
           </button>
@@ -45,7 +46,7 @@
       <!-- جسم المحادثة -->
       <main class="nova-chat-body" id="novaChatBody"></main>
 
-      <!-- الفوتر / حقل الكتابة -->
+      <!-- الفوتر -->
       <footer class="nova-chat-footer">
         <div class="nova-footer-row">
           <div class="nova-input-wrapper">
@@ -59,10 +60,9 @@
           <button
             class="nova-send-btn"
             id="novaSendBtn"
-            aria-label="إرسال"
-            type="button"
+            aria-label="إرسال الرسالة"
           >
-            <span>➤</span>
+            ➤
           </button>
         </div>
       </footer>
