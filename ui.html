@@ -1,13 +1,18 @@
-<!-- NovaBot v6.9.4 – Shadow UI Markup -->
-<div class="nova-root">
+<div id="novaRoot" class="nova-root">
+  <!-- الزر العائم -->
   <button class="nova-fab" id="novaFabBtn" aria-label="Open NovaBot chat">
     <div class="nova-fab-inner">
-      <img src="https://assets.zyrosite.com/YD0w46zZ5ZIrwlP8/uo3osso1o--uuuoss-ossuodeguu-1-fUS15tGQu2AgbmOA.gif" alt="NovaBot Icon" />
+      <img
+        src="https://assets.zyrosite.com/YD0w46zZ5ZIrwlP8/uo3osso1o--uuuoss-ossuodeguu-1-fUS15tGQu2AgbmOA.gif"
+        alt="NovaBot Icon"
+      />
     </div>
   </button>
 
+  <!-- خلفية نافذة الدردشة -->
   <div class="nova-chat-backdrop" id="novaBackdrop" aria-hidden="true">
     <div class="nova-chat-shell" dir="rtl">
+      <!-- الهيدر -->
       <header class="nova-chat-header">
         <div class="nova-header-left">
           <div class="nova-header-avatar">
@@ -24,14 +29,23 @@
             </div>
           </div>
         </div>
+
         <div class="nova-header-actions">
           <div class="nova-header-chip">NovaBot v6.9.4</div>
-          <button class="nova-header-close" id="novaCloseBtn" aria-label="Close chat">✕</button>
+          <button
+            class="nova-header-close"
+            id="novaCloseBtn"
+            aria-label="إغلاق المحادثة"
+          >
+            ✕
+          </button>
         </div>
       </header>
 
+      <!-- جسم المحادثة -->
       <main class="nova-chat-body" id="novaChatBody"></main>
 
+      <!-- الفوتر / حقل الكتابة -->
       <footer class="nova-chat-footer">
         <div class="nova-footer-row">
           <div class="nova-input-wrapper">
@@ -42,8 +56,13 @@
             ></textarea>
             <div class="nova-input-hint"></div>
           </div>
-          <button class="nova-send-btn" id="novaSendBtn" aria-label="إرسال">
-            ➤
+          <button
+            class="nova-send-btn"
+            id="novaSendBtn"
+            aria-label="إرسال"
+            type="button"
+          >
+            <span>➤</span>
           </button>
         </div>
       </footer>
