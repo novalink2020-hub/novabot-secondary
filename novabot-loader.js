@@ -89,34 +89,61 @@
     }
 
 /* ============================================================
-   تمدد نافذة المحادثة بعد إغلاق الكيبورد – Mobile/Tablet Fix
+   Mobile/Tablet Chat Resize – Full Two-Way Behaviour
    ============================================================ */
 
 (function enableMobileChatResizeFix() {
   if (!window.visualViewport) return;
 
+  const chatShell = root.querySelector(".nova-chat-shell");
+  if (!chatShell) return;
+
   let lastHeight = window.visualViewport.height;
+  let originalHeight = chatShell.style.height || ""; // للحفاظ على الارتفاع الأصلي
 
   window.visualViewport.addEventListener("resize", () => {
     const currentHeight = window.visualViewport.height;
 
-    // الزيادة المفاجئة في الارتفاع تعني أن الكيبورد أُغلق
-    const keyboardClosed = currentHeight > lastHeight + 60;
+    const keyboardOpened = currentHeight < lastHeight - 80;
+    const keyboardClosed = currentHeight > lastHeight + 80;
 
+    /* --------------------------------------------------------
+       عند فتح لوحة المفاتيح (Android / iOS)
+       -------------------------------------------------------- */
+    if (keyboardOpened) {
+      try {
+        // العودة إلى الارتفاع الديناميكي الأصلي
+        chatShell.style.height = originalHeight;
+
+        // ضغط نافذة المحادثة تلقائياً لعدم خروج الفوتر خارج الشاشة
+        chatShell.style.maxHeight = `${currentHeight - 20}px`;
+
+        // تعديل ارتفاع البودي مع الضغط
+        chatBody.style.maxHeight = `${currentHeight - 120}px`;
+
+      } catch (e) {
+        console.warn("Keyboard open error:", e);
+      }
+    }
+
+    /* --------------------------------------------------------
+       عند إغلاق لوحة المفاتيح
+       -------------------------------------------------------- */
     if (keyboardClosed) {
       try {
-        // استرجاع ارتفاع النافذة الطبيعية
-        const chatShell = root.querySelector(".nova-chat-shell");
-        if (chatShell) {
-          chatShell.style.height = `${window.innerHeight}px`;
+        // إعادة النافذة إلى الحجم الكامل
+        chatShell.style.height = `${window.innerHeight}px`;
+        chatShell.style.maxHeight = `${window.innerHeight}px`;
 
-          // التمرير للأسفل لعرض آخر الرسائل
-          setTimeout(() => {
-            chatBody.scrollTop = chatBody.scrollHeight;
-          }, 50);
-        }
+        // إلغاء أي ضغط تم تطبيقه
+        chatBody.style.maxHeight = "";
+
+        // تمرير لأسفل آخر الرسائل
+        setTimeout(() => {
+          chatBody.scrollTop = chatBody.scrollHeight;
+        }, 60);
       } catch (e) {
-        console.warn("Viewport resize handling error:", e);
+        console.warn("Keyboard close error:", e);
       }
     }
 
