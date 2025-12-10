@@ -1,23 +1,24 @@
-/* NovaBot v6.9.7 – Shadow DOM Loader
+/* NovaBot v6.9 – Shadow DOM Loader (Final)
    يعمل مع:
    - ui.css
    - ui.html
 */
 
 (function () {
+  if (window.__NovaBotShadowLoaded) return;
+  window.__NovaBotShadowLoaded = true;
+
   const scriptEl = document.currentScript;
   if (!scriptEl) return;
 
   const API_URL = scriptEl.getAttribute("data-novabot-api") || "";
   const LOCALE = scriptEl.getAttribute("data-novabot-locale") || "ar";
 
-  // إنشاء حاوية للشادو
+  // إنشاء حاوية للشادو – بدون تغطية الصفحة بالكامل
   const host = document.createElement("div");
   host.id = "novabot-shadow-host";
-  host.style.position = "fixed";
-  host.style.inset = "0";
+  host.style.position = "relative";
   host.style.zIndex = "9999";
-  host.style.pointerEvents = "auto"; // مهم لعمل الضغط داخل الواجهة
   document.body.appendChild(host);
 
   const shadow = host.attachShadow({ mode: "open" });
@@ -102,6 +103,11 @@
     let businessCardShown = false;
     let collabCardShown = false;
     let devCardShown = false;
+
+    // Helper لتحديد نوع الجهاز
+    function isMobileViewport() {
+      return window.innerWidth <= 1024;
+    }
 
     // ============================================================
     //                     Helpers
@@ -398,6 +404,9 @@
       return card;
     }
 
+    // TODO: دوال createBusinessCard / createBotLeadCard / createCollaborationCard
+    // تبقى كما هي في نسختك السابقة أو حسب الدماغ – لم نلمسها هنا.
+
     // ============================================================
     //                   التخزين المحلي
     // ============================================================
@@ -521,11 +530,10 @@
       backdrop.classList.add("nova-open");
       backdrop.setAttribute("aria-hidden", "false");
 
-      fabBtn.classList.add("nova-hidden");
-
-      try {
-        history.pushState({ novaBotOpen: true }, "", window.location.href);
-      } catch {}
+      // على الموبايل/التابلت فقط: إخفاء الزر العائم أثناء فتح النافذة
+      if (isMobileViewport()) {
+        fabBtn.classList.add("nova-hidden");
+      }
 
       if (!chatHistory.length) {
         setTimeout(() => {
@@ -544,26 +552,25 @@
       setTimeout(() => input.focus({ preventScroll: true }), 350);
     }
 
-    function closeChat(options = { fromBack: false }) {
+    function closeChat() {
       if (!novaChatOpen) return;
       novaChatOpen = false;
 
       backdrop.classList.remove("nova-open");
       backdrop.setAttribute("aria-hidden", "true");
 
-      setTimeout(() => fabBtn.classList.remove("nova-hidden"), 280);
-
-      if (!options.fromBack) {
-        try {
-          if (history.state?.novaBotOpen) history.back();
-        } catch {}
+      // على الموبايل/التابلت فقط: إعادة إظهار الزر العائم بعد الإغلاق
+      if (isMobileViewport()) {
+        setTimeout(() => fabBtn.classList.remove("nova-hidden"), 280);
       }
     }
 
     // ============================================================
     //                   الأحداث
     // ============================================================
-    fabBtn.addEventListener("click", () => (novaChatOpen ? closeChat() : openChat()));
+    fabBtn.addEventListener("click", () =>
+      novaChatOpen ? closeChat() : openChat()
+    );
     closeBtn.addEventListener("click", () => closeChat());
 
     backdrop.addEventListener("click", (e) => {
@@ -591,9 +598,7 @@
       }
     });
 
-    window.addEventListener("popstate", () => {
-      if (novaChatOpen) closeChat({ fromBack: true });
-    });
+    // لم نعد نستخدم history.pushState / popstate لتفادي مشاكل الرجوع للخلف
 
     restoreConversationIfFresh();
   }
