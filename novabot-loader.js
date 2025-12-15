@@ -88,70 +88,67 @@
       return;
     }
 
-/* ============================================================
-   Mobile/Tablet Chat Resize – Full Two-Way Behaviour
-   ============================================================ */
+    /* ============================================================
+       Mobile/Tablet Chat Resize – Full Two-Way Behaviour
+       ============================================================ */
+    (function enableMobileChatResizeFix() {
+      if (!window.visualViewport) return;
 
-(function enableMobileChatResizeFix() {
-  if (!window.visualViewport) return;
+      const chatShell = root.querySelector(".nova-chat-shell");
+      if (!chatShell) return;
 
-  const chatShell = root.querySelector(".nova-chat-shell");
-  if (!chatShell) return;
+      let lastHeight = window.visualViewport.height;
+      let originalHeight = chatShell.style.height || ""; // للحفاظ على الارتفاع الأصلي
 
-  let lastHeight = window.visualViewport.height;
-  let originalHeight = chatShell.style.height || ""; // للحفاظ على الارتفاع الأصلي
+      window.visualViewport.addEventListener("resize", () => {
+        const currentHeight = window.visualViewport.height;
 
-  window.visualViewport.addEventListener("resize", () => {
-    const currentHeight = window.visualViewport.height;
+        const keyboardOpened = currentHeight < lastHeight - 80;
+        const keyboardClosed = currentHeight > lastHeight + 80;
 
-    const keyboardOpened = currentHeight < lastHeight - 80;
-    const keyboardClosed = currentHeight > lastHeight + 80;
+        /* --------------------------------------------------------
+           عند فتح لوحة المفاتيح (Android / iOS)
+           -------------------------------------------------------- */
+        if (keyboardOpened) {
+          try {
+            // العودة إلى الارتفاع الديناميكي الأصلي
+            chatShell.style.height = originalHeight;
 
-    /* --------------------------------------------------------
-       عند فتح لوحة المفاتيح (Android / iOS)
-       -------------------------------------------------------- */
-    if (keyboardOpened) {
-      try {
-        // العودة إلى الارتفاع الديناميكي الأصلي
-        chatShell.style.height = originalHeight;
+            // ضغط نافذة المحادثة تلقائياً لعدم خروج الفوتر خارج الشاشة
+            chatShell.style.maxHeight = `${currentHeight - 20}px`;
 
-        // ضغط نافذة المحادثة تلقائياً لعدم خروج الفوتر خارج الشاشة
-        chatShell.style.maxHeight = `${currentHeight - 20}px`;
+            // تعديل ارتفاع البودي مع الضغط
+            chatBody.style.maxHeight = `${currentHeight - 120}px`;
+          } catch (e) {
+            console.warn("Keyboard open error:", e);
+          }
+        }
 
-        // تعديل ارتفاع البودي مع الضغط
-        chatBody.style.maxHeight = `${currentHeight - 120}px`;
+        /* --------------------------------------------------------
+           عند إغلاق لوحة المفاتيح
+           -------------------------------------------------------- */
+        if (keyboardClosed) {
+          try {
+            // إعادة النافذة إلى الحجم الكامل
+            chatShell.style.height = `${window.innerHeight}px`;
+            chatShell.style.maxHeight = `${window.innerHeight}px`;
 
-      } catch (e) {
-        console.warn("Keyboard open error:", e);
-      }
-    }
+            // إلغاء أي ضغط تم تطبيقه
+            chatBody.style.maxHeight = "";
 
-    /* --------------------------------------------------------
-       عند إغلاق لوحة المفاتيح
-       -------------------------------------------------------- */
-    if (keyboardClosed) {
-      try {
-        // إعادة النافذة إلى الحجم الكامل
-        chatShell.style.height = `${window.innerHeight}px`;
-        chatShell.style.maxHeight = `${window.innerHeight}px`;
+            // تمرير لأسفل آخر الرسائل
+            setTimeout(() => {
+              chatBody.scrollTop = chatBody.scrollHeight;
+            }, 60);
+          } catch (e) {
+            console.warn("Keyboard close error:", e);
+          }
+        }
 
-        // إلغاء أي ضغط تم تطبيقه
-        chatBody.style.maxHeight = "";
+        lastHeight = currentHeight;
+      });
+    })();
 
-        // تمرير لأسفل آخر الرسائل
-        setTimeout(() => {
-          chatBody.scrollTop = chatBody.scrollHeight;
-        }, 60);
-      } catch (e) {
-        console.warn("Keyboard close error:", e);
-      }
-    }
-
-    lastHeight = currentHeight;
-  });
-})();
-
-     
     // الحالة الداخلية
     let chatHistory = [];
     let soundCount = 0;
@@ -199,6 +196,11 @@
       }
       isTypingAnimationActive = false;
       pendingCardCallbacks.length = 0;
+    }
+
+    // helper بسيط للتمييز بين الموبايل/التابلت والديسكتوب
+    function isMobileViewport() {
+      return window.innerWidth <= 1024;
     }
 
     function startThinkingBubble() {
@@ -749,7 +751,10 @@
       backdrop.classList.add("nova-open");
       backdrop.setAttribute("aria-hidden", "false");
 
-      fabBtn.classList.add("nova-hidden");
+      // موبايل/تابلت فقط → إخفاء الزر العائم عند الفتح
+      if (isMobileViewport()) {
+        fabBtn.classList.add("nova-hidden");
+      }
 
       try {
         history.pushState({ novaBotOpen: true }, "", window.location.href);
@@ -779,7 +784,10 @@
       backdrop.classList.remove("nova-open");
       backdrop.setAttribute("aria-hidden", "true");
 
-      setTimeout(() => fabBtn.classList.remove("nova-hidden"), 280);
+      // موبايل/تابلت فقط → إظهار الزر العائم بعد الإغلاق
+      if (isMobileViewport()) {
+        setTimeout(() => fabBtn.classList.remove("nova-hidden"), 280);
+      }
 
       if (!options.fromBack) {
         try {
@@ -791,7 +799,9 @@
     // ============================================================
     //                   الأحداث
     // ============================================================
-    fabBtn.addEventListener("click", () => (novaChatOpen ? closeChat() : openChat()));
+    fabBtn.addEventListener("click", () =>
+      novaChatOpen ? closeChat() : openChat()
+    );
     closeBtn.addEventListener("click", () => closeChat());
 
     backdrop.addEventListener("click", (e) => {
