@@ -11,12 +11,6 @@
   const API_URL = scriptEl.getAttribute("data-novabot-api") || "";
   const LOCALE = scriptEl.getAttribute("data-novabot-locale") || "ar";
 
-  // ✅ Turnstile Site Key (ليس سرًا) — ضعه كـ data attribute على نفس سكربت اللودر:
-  // <script src=".../novabot-loader.js" data-novabot-api="..." data-novabot-locale="ar"
-  //         data-novabot-turnstile-sitekey="0x4AAAAA...."></script>
-  const TURNSTILE_SITE_KEY =
-    scriptEl.getAttribute("data-novabot-turnstile-sitekey") || "";
-
   // إنشاء حاوية للشادو
   const host = document.createElement("div");
   host.id = "novabot-shadow-host";
@@ -27,145 +21,6 @@
   document.body.appendChild(host);
 
   const shadow = host.attachShadow({ mode: "open" });
-
-  // ============================================================
-  // Layer 4 (Client): Turnstile Proof — Invisible token per request
-  // ============================================================
-  let turnstileReady = false;
-  let turnstileWidgetId = null;
-  let lastTsToken = "";
-  let lastTsAt = 0;
-
-  // توكن Turnstile قصير العمر عمليًا — نخليه كاش بسيط لتقليل التنفيذ المتكرر
-  const TS_CACHE_MS = 55 * 1000; // 55 ثانية
-
-  let tsWaiters = []; // resolvers
-
-  function loadTurnstile() {
-    // لو ما عندك Site Key — نتركه يعبر بهدوء (السيرفر سيقرر)
-    if (!TURNSTILE_SITE_KEY) return;
-
-    if (window.turnstile) {
-      initTurnstile();
-      return;
-    }
-
-    // منع تكرار تحميل السكربت
-    if (document.querySelector('script[data-novabot-turnstile="1"]')) return;
-
-    const s = document.createElement("script");
-    s.src =
-      "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-    s.async = true;
-    s.defer = true;
-    s.setAttribute("data-novabot-turnstile", "1");
-    s.onload = initTurnstile;
-    document.head.appendChild(s);
-  }
-
-  function initTurnstile() {
-    if (!TURNSTILE_SITE_KEY) return;
-    if (!window.turnstile || turnstileReady) return;
-
-    const container = document.createElement("div");
-    container.style.display = "none";
-    document.body.appendChild(container);
-
-    // Turnstile: نستخدم callback لتسليم التوكن بشكل مضمون
-    turnstileWidgetId = window.turnstile.render(container, {
-      sitekey: TURNSTILE_SITE_KEY,
-      size: "invisible",
-      callback: function (token) {
-        lastTsToken = String(token || "");
-        lastTsAt = Date.now();
-
-        if (tsWaiters.length) {
-          const q = tsWaiters.slice();
-          tsWaiters.length = 0;
-          q.forEach((resolve) => {
-            try {
-              resolve(lastTsToken);
-            } catch (e) {}
-          });
-        }
-      },
-      "error-callback": function () {
-        if (tsWaiters.length) {
-          const q = tsWaiters.slice();
-          tsWaiters.length = 0;
-          q.forEach((resolve) => {
-            try {
-              resolve("");
-            } catch (e) {}
-          });
-        }
-      },
-      "expired-callback": function () {
-        lastTsToken = "";
-        lastTsAt = 0;
-      }
-    });
-
-    turnstileReady = true;
-  }
-
-  function waitForTurnstileReady(timeoutMs = 4000) {
-    return new Promise((resolve) => {
-      if (!TURNSTILE_SITE_KEY) return resolve(false);
-      if (turnstileReady && window.turnstile && turnstileWidgetId !== null)
-        return resolve(true);
-
-      const start = Date.now();
-      const t = setInterval(() => {
-        if (turnstileReady && window.turnstile && turnstileWidgetId !== null) {
-          clearInterval(t);
-          resolve(true);
-        } else if (Date.now() - start > timeoutMs) {
-          clearInterval(t);
-          resolve(false);
-        }
-      }, 50);
-    });
-  }
-
-  async function getTurnstileToken() {
-    if (!TURNSTILE_SITE_KEY) return "";
-
-    // كاش بسيط لتجنب تنفيذ زائد
-    if (lastTsToken && Date.now() - lastTsAt < TS_CACHE_MS) return lastTsToken;
-
-    const ok = await waitForTurnstileReady(4000);
-    if (!ok || !window.turnstile || turnstileWidgetId === null) return "";
-
-    // نطلب توكن جديد
-    return new Promise((resolve) => {
-      tsWaiters.push(resolve);
-
-      try {
-        // execute سيطلق callback أعلاه
-        window.turnstile.execute(turnstileWidgetId);
-      } catch {
-        // فشل execute
-        const q = tsWaiters.slice();
-        tsWaiters.length = 0;
-        q.forEach((r) => {
-          try {
-            r("");
-          } catch (e) {}
-        });
-      }
-
-      // ضمان عدم تعليق الوعد
-      setTimeout(() => {
-        const idx = tsWaiters.indexOf(resolve);
-        if (idx !== -1) tsWaiters.splice(idx, 1);
-        resolve(lastTsToken || "");
-      }, 4500);
-    });
-  }
-
-  // حمّل Turnstile مبكرًا
-  loadTurnstile();
 
   // مسار الملفات ui.css و ui.html
   const baseUrl = scriptEl.src.replace(/[^\/]+$/, "");
@@ -407,9 +262,7 @@
           </div>
           <div class="nova-bubble-content">
             <div class="nova-typing">
-              <span>${
-                lang === "en" ? "NovaBot is typing" : "نوفا بوت يكتب الآن"
-              }</span>
+              <span>${lang === "en" ? "NovaBot is typing" : "نوفا بوت يكتب الآن"}</span>
               <span class="nova-typing-dots">
                 <span class="nova-dot-typing"></span>
                 <span class="nova-dot-typing"></span>
@@ -538,16 +391,12 @@
       // Layer 2: تأكد من وجود Session Token قبل الطلب
       await ensureSessionToken();
 
-      // ✅ Layer 4: Turnstile token قبل الطلب (بهدوء)
-      const tsToken = await getTurnstileToken();
-
       try {
         const res = await fetch(config.API_PRIMARY, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(sessionToken ? { "X-NOVABOT-SESSION": sessionToken } : {}),
-            ...(tsToken ? { "X-NOVABOT-TS-TOKEN": tsToken } : {})
+            ...(sessionToken ? { "X-NOVABOT-SESSION": sessionToken } : {})
           },
           body: JSON.stringify({ message })
         });
@@ -969,9 +818,6 @@
 
       // prefetch session token عند الفتح (اختياري لكن يحسن أول رسالة)
       ensureSessionToken();
-
-      // ✅ تحضير Turnstile مبكرًا عند الفتح
-      loadTurnstile();
 
       setTimeout(() => input.focus({ preventScroll: true }), 350);
     }
