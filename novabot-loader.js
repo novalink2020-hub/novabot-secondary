@@ -168,17 +168,6 @@
   ])
     .then(([cssText, htmlText]) => {
       shadow.innerHTML = `<style>${cssText}</style>${htmlText}`;
-       const tweak = document.createElement("style");
-tweak.textContent = `
-@media (max-width: 1024px) {
-  .nova-chat-header { padding: 10px 12px !important; }
-  .nova-chat-body { padding: 10px 12px !important; }
-  .nova-chat-footer { padding: 10px 12px !important; margin: 0 !important; }
-  #novaInput { padding: 12px 14px !important; }
-}
-`;
-shadow.appendChild(tweak);
-
       initNovaBot(shadow, { apiUrl: API_URL, locale: LOCALE });
     })
     .catch((err) => {
@@ -234,59 +223,66 @@ shadow.appendChild(tweak);
       return;
     }
 
-/* ============================================================
-   Mobile/Tablet Chat Resize – Production Fix (No Over-Compression)
-   ============================================================ */
-(function enableMobileChatResizeFix() {
-  if (!window.visualViewport) return;
+    /* ============================================================
+       Mobile/Tablet Chat Resize – Full Two-Way Behaviour
+       ============================================================ */
+    (function enableMobileChatResizeFix() {
+      if (!window.visualViewport) return;
 
-  const chatShell = root.querySelector(".nova-chat-shell");
-  if (!chatShell) return;
+      const chatShell = root.querySelector(".nova-chat-shell");
+      if (!chatShell) return;
 
-  const headerEl =
-    root.querySelector(".nova-chat-header") ||
-    root.querySelector(".nova-header") ||
-    root.querySelector(".nova-topbar");
+      let lastHeight = window.visualViewport.height;
+      let originalHeight = chatShell.style.height || ""; // للحفاظ على الارتفاع الأصلي
 
-  const footerEl =
-    root.querySelector(".nova-chat-footer") ||
-    (input ? input.closest(".nova-chat-footer") : null);
+      window.visualViewport.addEventListener("resize", () => {
+        const currentHeight = window.visualViewport.height;
 
-  function px(n) {
-    return Math.max(0, Math.floor(Number(n || 0)));
-  }
+        const keyboardOpened = currentHeight < lastHeight - 80;
+        const keyboardClosed = currentHeight > lastHeight + 80;
 
-  function calcLayout() {
-    const vv = window.visualViewport;
-    const vvH = px(vv.height);
+        /* --------------------------------------------------------
+           عند فتح لوحة المفاتيح (Android / iOS)
+           -------------------------------------------------------- */
+        if (keyboardOpened) {
+          try {
+            // العودة إلى الارتفاع الديناميكي الأصلي
+            chatShell.style.height = originalHeight;
 
-    const headerH = headerEl ? px(headerEl.getBoundingClientRect().height) : 0;
-    const footerH = footerEl ? px(footerEl.getBoundingClientRect().height) : 0;
+            // ضغط نافذة المحادثة تلقائياً لعدم خروج الفوتر خارج الشاشة
+            chatShell.style.maxHeight = `${currentHeight - 20}px`;
 
-    const bodyMax = Math.max(140, vvH - headerH - footerH - 12);
+            // تعديل ارتفاع البودي مع الضغط
+            chatBody.style.maxHeight = `${currentHeight - 120}px`;
+          } catch (e) {
+            console.warn("Keyboard open error:", e);
+          }
+        }
 
-    return { vvH, bodyMax };
-  }
+        /* --------------------------------------------------------
+           عند إغلاق لوحة المفاتيح
+           -------------------------------------------------------- */
+        if (keyboardClosed) {
+          try {
+            // إعادة النافذة إلى الحجم الكامل
+            chatShell.style.height = `${window.innerHeight}px`;
+            chatShell.style.maxHeight = `${window.innerHeight}px`;
 
-  function apply() {
-    const { vvH, bodyMax } = calcLayout();
+            // إلغاء أي ضغط تم تطبيقه
+            chatBody.style.maxHeight = "";
 
-    chatShell.style.height = vvH + "px";
-    chatShell.style.maxHeight = vvH + "px";
-    chatBody.style.maxHeight = bodyMax + "px";
+            // تمرير لأسفل آخر الرسائل
+            setTimeout(() => {
+              chatBody.scrollTop = chatBody.scrollHeight;
+            }, 60);
+          } catch (e) {
+            console.warn("Keyboard close error:", e);
+          }
+        }
 
-    setTimeout(() => {
-      try {
-        chatBody.scrollTop = chatBody.scrollHeight;
-      } catch {}
-    }, 30);
-  }
-
-  apply();
-  window.visualViewport.addEventListener("resize", apply);
-  window.visualViewport.addEventListener("scroll", apply);
-})();
-
+        lastHeight = currentHeight;
+      });
+    })();
 
     // الحالة الداخلية
     let chatHistory = [];
@@ -894,43 +890,12 @@ shadow.appendChild(tweak);
     // ============================================================
     //                   إرسال الرسائل
     // ============================================================
-// ============================================================
-// Textarea: 1 line default → up to 4 lines max
-// ============================================================
-(function setupInput() {
-  try {
-    input.setAttribute("rows", "1");
-    input.style.resize = "none";
-    input.style.overflowY = "hidden";
-    input.style.lineHeight = "1.4";
-  } catch {}
-})();
-
-function autoResizeTextarea() {
-  try {
-    input.style.height = "auto";
-
-    const cs = window.getComputedStyle(input);
-    const lineH = parseFloat(cs.lineHeight) || 20;
-
-    const minH = Math.ceil(lineH * 1 + 14);
-    const maxH = Math.ceil(lineH * 4 + 14);
-
-    const h = Math.max(minH, Math.min(maxH, input.scrollHeight));
-    input.style.height = h + "px";
-  } catch {
-    input.style.height = "42px";
-  }
-}
-
-input.addEventListener("input", autoResizeTextarea);
-
-setTimeout(() => {
-  try {
-    autoResizeTextarea();
-  } catch {}
-}, 0);
-
+    function autoResizeTextarea() {
+      input.style.height = "auto";
+      const newHeight = Math.min(96, Math.max(36, input.scrollHeight));
+      input.style.height = newHeight + "px";
+    }
+    input.addEventListener("input", autoResizeTextarea);
 
     async function handleSend() {
       const text = input.value.trim();
