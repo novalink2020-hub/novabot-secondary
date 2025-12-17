@@ -1025,21 +1025,24 @@ ${contact}
           subscribeCardShown = true;
           card = createSubscribeCard("default");
           break;
-        case "business_subscribe":
-          if (businessCardShown) return;
-          businessCardShown = true;
-          card = createBusinessCard();
-          break;
-        case "bot_lead":
-          if (botCardShown) return;
-          botCardShown = true;
-          card = createBotLeadCard();
-          break;
-        case "collaboration":
-          if (collabCardShown) return;
-          collabCardShown = true;
-          card = createCollaborationCard();
-          break;
+      case "business_subscribe":
+  if (businessCardShown) return;
+  businessCardShown = true;
+  card = window.NovaBotCards?.createBusinessCard?.();
+  break;
+
+case "bot_lead":
+  if (botCardShown) return;
+  botCardShown = true;
+  card = window.NovaBotCards?.createBotLeadCard?.();
+  break;
+
+case "collaboration":
+  if (collabCardShown) return;
+  collabCardShown = true;
+  card = window.NovaBotCards?.createCollaborationCard?.();
+  break;
+
         case "developer_identity":
           if (devCardShown) return;
           devCardShown = true;
