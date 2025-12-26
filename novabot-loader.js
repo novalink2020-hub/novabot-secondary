@@ -453,6 +453,7 @@ ${contact}
     const STORAGE_KEY = "novabot_v6.9_conversation";
     const STORAGE_TTL_MS = 12 * 60 * 60 * 1000;
     const EMAIL_STORAGE_KEY = "novabot_user_email"; // لتخزين آخر إيميل أدخله المستخدم
+const SEND_COOLDOWN_MS = 800; // منع الإرسال المتكرر السريع
 
     // عناصر الواجهة
     const fabBtn = root.getElementById("novaFabBtn");
@@ -1155,6 +1156,14 @@ NovaUIState.hasSession = true;
 
 async function handleSend() {
   const text = input.value.trim();
+   const now = Date.now();
+if (
+  NovaUIState.lastInteractionAt &&
+  now - NovaUIState.lastInteractionAt < SEND_COOLDOWN_MS
+) {
+  return;
+}
+
   if (!text || NovaUIState.isTyping) return;
 
   // Guard: prevent double send
