@@ -1177,13 +1177,6 @@ case "collaboration":
             : "✨ واجهة نوفا بوت الآن في وضع التجربة. سيتم ربط الدماغ قريباً.";
       }
 
-      // بطاقة المطور
-      if (result && result.actionCard === "developer_identity") {
-        replyText =
-          detectLangFromText(text) === "en"
-            ? "✨ Developer identity card…"
-            : "✨ هذه بطاقة تعريف سريعة بالمطوّر خلف نوفا بوت.";
-      }
 
       const replyHtml = replyText.replace(/\n/g, "<br>");
       typeReplyInCurrentBubble(replyHtml);
