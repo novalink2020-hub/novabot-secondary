@@ -536,6 +536,7 @@ ${contact}
     let currentBotRow = null;
     let typingIntervalId = null;
     let isTypingAnimationActive = false;
+
     const pendingCardCallbacks = [];
 
     let subscribeCardShown = false;
@@ -626,6 +627,9 @@ ${contact}
     }
 
     function startThinkingBubble() {
+       if (NovaUIState.isTyping) return;
+NovaUIState.isTyping = true;
+
       clearTypingState();
 
       currentBotRow = document.createElement("div");
@@ -687,6 +691,7 @@ ${contact}
           clearInterval(typingIntervalId);
           typingIntervalId = null;
           isTypingAnimationActive = false;
+           NovaUIState.isTyping = false;
 
           playNovaSound();
 
@@ -1144,9 +1149,16 @@ case "collaboration":
     }
     input.addEventListener("input", autoResizeTextarea);
 
-    async function handleSend() {
-      const text = input.value.trim();
-      if (!text) return;
+async function handleSend() {
+  const text = input.value.trim();
+  if (!text || NovaUIState.isTyping) return;
+
+  // Guard: prevent double send
+  if (NovaUIState.isSending) return;
+  NovaUIState.isSending = true;
+  NovaUIState.lastInteractionAt = Date.now();
+
+
 
       addUserMessage(text);
       chatHistory.push({ role: "user", content: text });
@@ -1173,9 +1185,10 @@ case "collaboration":
         result = apiRes;
       } catch {
         result = { ok: false, reply: "" };
-      } finally {
-        sendBtn.disabled = false;
-      }
+} finally {
+  sendBtn.disabled = false;
+  NovaUIState.isSending = false;
+}
 
       let replyText = "";
 
