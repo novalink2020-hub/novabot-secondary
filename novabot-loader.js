@@ -1128,6 +1128,9 @@ case "collaboration":
         }
 
         chatHistory = data.history;
+         NovaUIState.sessionRestored = true;
+NovaUIState.hasSession = true;
+
 
         chatHistory.forEach((msg) => {
           if (msg.role === "user") {
@@ -1219,6 +1222,9 @@ if (result && result.actionCard) {
     // ============================================================
     function openChat() {
       if (novaChatOpen) return;
+       if (NovaUIState.isOpen) return;
+NovaUIState.isOpen = true;
+
       novaChatOpen = true;
 
       backdrop.classList.add("nova-open");
@@ -1233,7 +1239,7 @@ if (result && result.actionCard) {
         history.pushState({ novaBotOpen: true }, "", window.location.href);
       } catch {}
 
-      if (!chatHistory.length) {
+      if (!chatHistory.length && !NovaUIState.sessionRestored) {
         setTimeout(() => {
           startThinkingBubble();
           setTimeout(() => {
@@ -1255,6 +1261,9 @@ if (result && result.actionCard) {
 
     function closeChat(options = { fromBack: false }) {
       if (!novaChatOpen) return;
+       if (!NovaUIState.isOpen) return;
+NovaUIState.isOpen = false;
+
       novaChatOpen = false;
 
       backdrop.classList.remove("nova-open");
