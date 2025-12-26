@@ -478,7 +478,7 @@ const SEND_COOLDOWN_MS = 800; // منع الإرسال المتكرر السري
       if (!chatShell) return;
 
       let lastHeight = window.visualViewport.height;
-      let originalHeight = chatShell.style.height || ""; // للحفاظ على الارتفاع الأصلي
+ let originalHeight = chatShell.getBoundingClientRect().height; // للحفاظ على الارتفاع الأصلي
 
       window.visualViewport.addEventListener("resize", () => {
         const currentHeight = window.visualViewport.height;
