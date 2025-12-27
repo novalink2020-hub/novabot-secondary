@@ -612,6 +612,9 @@
   padding-bottom: 6px;
   min-height: 32px;      /* سطر واحد حقيقي */
 }
+.nova-footer-row {
+  align-items: center;
+}
 
 /* ============ وضع نهاري – فقط موبايل/تابلت مع light mode ============ */
 @media (max-width: 1024px) and (prefers-color-scheme: light) {
