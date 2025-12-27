@@ -509,7 +509,7 @@ let __kbApplied = false;
     chatShell.style.bottom = `${bottomGap}px`;
 
     // نقيّد فقط maxHeight (بدون لمس height الأساسي)
-    chatShell.style.maxHeight = `${vv.height}px`;
+chatShell.style.maxHeight = `${vv.height + vv.offsetTop}px`;
 
     // الفقاعات: نعطيها سكرول، ونخليها ضمن المساحة المتاحة
     // (الرقم 64 مجرد هامش أمان بسيط — إذا عندك هيدر/فوتر أكبر نعدّله لاحقًا بدقة)
