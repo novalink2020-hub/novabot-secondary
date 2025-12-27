@@ -462,7 +462,37 @@ const SEND_COOLDOWN_MS = 800; // منع الإرسال المتكرر السري
     const chatBody = root.getElementById("novaChatBody");
     const input = root.getElementById("novaInput");
     const sendBtn = root.getElementById("novaSendBtn");
+// ============================================================
+// Mobile/Tablet – Lock footer drag when keyboard is open
+// ============================================================
+(function lockFooterDragOnKeyboard() {
+  const footer = root.querySelector(".nova-footer-row");
+  if (!footer || !window.visualViewport) return;
 
+  let keyboardOpen = false;
+  let lastVVHeight = window.visualViewport.height;
+
+  // نراقب حالة الكيبورد فقط
+  window.visualViewport.addEventListener("resize", () => {
+    const h = window.visualViewport.height;
+    keyboardOpen = h < lastVVHeight - 80;
+    lastVVHeight = h;
+  });
+
+  // منع سحب الفوتر فقط عند فتح الكيبورد
+  footer.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!isMobileViewport()) return;
+      if (!keyboardOpen) return;
+
+      e.preventDefault(); // 🔒 هنا القفل
+    },
+    { passive: false }
+  );
+})();
+
+     
     if (!fabBtn || !backdrop || !closeBtn || !chatBody || !input || !sendBtn) {
       console.error("NovaBot UI elements missing");
       return;
