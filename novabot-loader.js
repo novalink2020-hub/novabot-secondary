@@ -1179,11 +1179,26 @@ NovaUIState.hasSession = true;
     // ============================================================
     //                   إرسال الرسائل
     // ============================================================
-    function autoResizeTextarea() {
-      input.style.height = "auto";
-      const newHeight = Math.min(96, Math.max(36, input.scrollHeight));
-      input.style.height = newHeight + "px";
-    }
+function autoResizeTextarea() {
+  // ❗ فقط موبايل وتابلت
+  if (!isMobileViewport()) return;
+
+  // سطر واحد افتراضي
+  input.style.height = "auto";
+
+  // حساب الارتفاع الحقيقي
+  const lineHeight = 24; // سطر منطقي
+  const maxLines = 4;
+  const maxHeight = lineHeight * maxLines;
+
+  const newHeight = Math.min(
+    maxHeight,
+    Math.max(lineHeight, input.scrollHeight)
+  );
+
+  input.style.height = newHeight + "px";
+}
+
     input.addEventListener("input", autoResizeTextarea);
 
 async function handleSend() {
