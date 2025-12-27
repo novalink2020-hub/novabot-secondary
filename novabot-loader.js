@@ -1208,6 +1208,18 @@ function autoResizeTextarea() {
 
 
     input.addEventListener("input", autoResizeTextarea);
+     // Desktop: فك قيود CSS للسماح بالتمدد الحر
+input.addEventListener("input", () => {
+  if (isMobileViewport()) return;
+
+  input.style.height = "auto";
+  input.style.maxHeight = "none";
+  input.style.overflowY = "hidden";
+
+  // التمدد الطبيعي حسب المحتوى
+  input.style.height = input.scrollHeight + "px";
+});
+
      // استرجاع سلوك الديسكتوب الطبيعي عند الخروج من الموبايل
 input.addEventListener("blur", () => {
   if (isMobileViewport()) return;
