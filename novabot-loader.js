@@ -480,16 +480,29 @@ const SEND_COOLDOWN_MS = 800; // منع الإرسال المتكرر السري
   });
 
   // منع سحب الفوتر فقط عند فتح الكيبورد
-  footer.addEventListener(
-    "touchmove",
-    (e) => {
-      if (!isMobileViewport()) return;
-      if (!keyboardOpen) return;
+ footer.addEventListener(
+  "touchmove",
+  (e) => {
+    if (!isMobileViewport()) return;
+    if (!keyboardOpen) return;
 
-      e.preventDefault(); // 🔒 هنا القفل
-    },
-    { passive: false }
-  );
+    const target = e.target;
+
+    // السماح بالتمرير داخل textarea إذا كان قابلًا للتمرير
+    if (
+      target &&
+      target.tagName === "TEXTAREA" &&
+      target.scrollHeight > target.clientHeight
+    ) {
+      return; // ✅ اسمح بالتمرير
+    }
+
+    // غير ذلك → اقفل سحب الفوتر
+    e.preventDefault();
+  },
+  { passive: false }
+);
+
 })();
 
      
