@@ -608,6 +608,39 @@ chatShell.style.maxHeight = `${vv.height + vv.offsetTop}px`;
     let chatHistory = [];
     let soundCount = 0;
     let novaChatOpen = false;
+     // ============================================================
+// Focus Recovery – UX polish (Mobile & Desktop aware)
+// ============================================================
+let wasTypingBeforeBlur = false;
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    // نسجل فقط — لا نفعل شيء
+    wasTypingBeforeBlur =
+      novaChatOpen && document.activeElement === input;
+    return;
+  }
+
+  // عند العودة
+  if (!novaChatOpen) return;
+
+  // موبايل/تابلت: لا نعيد التركيز تلقائيًا
+  if (isMobileViewport()) {
+    // فقط نضمن أن آخر رسالة مرئية
+    setTimeout(() => {
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }, 60);
+    return;
+  }
+
+  // ديسكتوب: نعيد التركيز فقط إذا كان يكتب سابقًا
+  if (wasTypingBeforeBlur) {
+    setTimeout(() => {
+      input.focus({ preventScroll: true });
+    }, 80);
+  }
+});
+
 
     let currentBotRow = null;
     let typingIntervalId = null;
