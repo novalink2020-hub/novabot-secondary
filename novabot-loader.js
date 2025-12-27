@@ -1180,30 +1180,24 @@ NovaUIState.hasSession = true;
     //                   إرسال الرسائل
     // ============================================================
 function autoResizeTextarea() {
-  // ❗ فقط موبايل وتابلت
-  if (!isMobileViewport()) return;
-
-  // إعادة الضبط قبل الحساب
   input.style.height = "auto";
 
-  const lineHeight = 24; // ارتفاع سطر واحد
+  const lineHeight = 24; // متوافق مع Tajawal
   const maxLines = 4;
   const maxHeight = lineHeight * maxLines;
 
-  const scrollH = input.scrollHeight;
   const newHeight = Math.min(
     maxHeight,
-    Math.max(lineHeight, scrollH)
+    Math.max(lineHeight, input.scrollHeight)
   );
 
   input.style.height = newHeight + "px";
 
-  // إظهار الـ scrollbar فقط عند تجاوز الحد الأقصى
-  if (scrollH > maxHeight) {
-    input.style.overflowY = "auto";
-  } else {
-    input.style.overflowY = "hidden";
-  }
+  // إظهار السكرول فقط بعد 4 أسطر
+  input.style.overflowY =
+    input.scrollHeight > maxHeight ? "auto" : "hidden";
+}
+
 }
 
 
