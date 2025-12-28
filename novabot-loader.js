@@ -462,6 +462,15 @@ const SEND_COOLDOWN_MS = 800; // منع الإرسال المتكرر السري
     const chatBody = root.getElementById("novaChatBody");
     const input = root.getElementById("novaInput");
     const sendBtn = root.getElementById("novaSendBtn");
+     const footerRow = root.querySelector(".nova-footer-row");
+
+function syncChatBodyToFooter() {
+  if (!footerRow) return;
+  const h = Math.ceil(footerRow.getBoundingClientRect().height || 0);
+  // 8px هامش أمان صغير
+  chatBody.style.paddingBottom = (h + 8) + "px";
+}
+
 // ============================================================
 // Mobile/Tablet – Lock footer drag when keyboard is open
 // ============================================================
