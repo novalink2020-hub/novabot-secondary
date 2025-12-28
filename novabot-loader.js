@@ -202,6 +202,21 @@ const NovaUIState = {
   ====================================== */
 
   function saveUserContact(val) {
+     async function sendLeadEvent(payload) {
+  try {
+    await fetch(`${API_URL}/lead-event`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+    console.log("Lead Event sent:", payload);
+  } catch (err) {
+    console.warn("Lead Event failed:", err);
+  }
+}
+
     if (!val || typeof val !== "string") return;
     const clean = val.trim();
     if (clean.length < 4) return;
@@ -274,18 +289,33 @@ const NovaUIState = {
     const secondaryBtn = card.querySelector(".nova-card-btn-secondary");
 
     attachAutofill(input);
+     primaryBtn.addEventListener("click", async () => {
+  const val = (input.value || "").trim();
+  if (!val) { alert("يرجى إدخال بريدك الإلكتروني."); input.focus(); return; }
+  
+  saveUserContact(val);
 
-    primaryBtn.addEventListener("click", () => {
-      const val = (input.value || "").trim();
-      if (!val) {
-        alert("يرجى إدخال بريدك الإلكتروني.");
-        input.focus();
-        return;
-      }
-      saveUserContact(val);
-      primaryBtn.textContent = "تم الاشتراك ✓";
-      primaryBtn.disabled = true;
-    });
+  // Build event payload
+  const payload = {
+    event_type: "lead_submit",
+    card_type: "business_subscribe",
+    email: val,
+    name: "",
+    phone: "",
+    session_id: localStorage.getItem("novabot_v6.9_conversation") || "",
+    page_url: window.location.href,
+    language: LOCALE,
+    timestamp: Date.now()
+  };
+
+  // Send event
+  await sendLeadEvent(payload);
+
+  // UI feedback
+  primaryBtn.textContent = "تم التسجيل ✓";
+  primaryBtn.disabled = true;
+});
+
 
     secondaryBtn.addEventListener("click", () => {
       window.open("https://novalink-ai.com/services-khdmat-nwfa-lynk", "_blank");
