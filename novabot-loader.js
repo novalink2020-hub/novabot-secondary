@@ -202,7 +202,7 @@ const NovaUIState = {
   ====================================== */
 
   function saveUserContact(val) {
-     async function sendLeadEvent(payload) {
+  async function sendLeadEvent(payload) {
   try {
     await fetch(`${API_URL}/lead-event`, {
       method: "POST",
@@ -217,13 +217,15 @@ const NovaUIState = {
   }
 }
 
-    if (!val || typeof val !== "string") return;
-    const clean = val.trim();
-    if (clean.length < 4) return;
-    try {
-      localStorage.setItem(NOVA_CONTACT_KEY, clean);
-    } catch (e) {}
-  }
+function saveUserContact(val) {
+  if (!val || typeof val !== "string") return;
+  const clean = val.trim();
+  if (clean.length < 4) return;
+  try {
+    localStorage.setItem(NOVA_CONTACT_KEY, clean);
+  } catch (e) {}
+}
+
 
   function getUserContact() {
     try {
