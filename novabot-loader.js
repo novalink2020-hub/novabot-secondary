@@ -503,7 +503,24 @@ ${contact}
     const STORAGE_TTL_MS = 12 * 60 * 60 * 1000;
     const EMAIL_STORAGE_KEY = "novabot_user_email"; // لتخزين آخر إيميل أدخله المستخدم
 const SEND_COOLDOWN_MS = 800; // منع الإرسال المتكرر السريع
+// ============================================================
+// Lead Event Dispatcher (Frontend)
+// ============================================================
+function dispatchNovaLeadEvent(payload) {
+  if (!config.API_PRIMARY) return;
 
+  try {
+    fetch(config.API_PRIMARY.replace(/\/+$/, "") + "/lead-event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {}
+}
+
+     
     // عناصر الواجهة
     const fabBtn = root.getElementById("novaFabBtn");
     const backdrop = root.getElementById("novaBackdrop");
@@ -1051,33 +1068,65 @@ NovaUIState.isTyping = true;
       // بطاقة الاشتراك / الأعمال
       if (isSubscribeCard) {
         if (primaryBtn && inputEl) {
-          primaryBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            const val = (inputEl.value || "").trim();
+primaryBtn.addEventListener("click", (e) => {
+  e.preventDefault();
 
-            if (!val) {
-              const msg =
-                lang === "en"
-                  ? "Please enter your email first."
-                  : "من فضلك أدخل بريدك الإلكتروني أولاً.";
-              showActionToast(msg);
-              inputEl.focus();
-              return;
-            }
+  const val = (inputEl.value || "").trim();
+  if (!val) {
+    const msg =
+      lang === "en"
+        ? "Please enter your email first."
+        : "من فضلك أدخل بريدك الإلكتروني أولاً.";
+    showActionToast(msg);
+    inputEl.focus();
+    return;
+  }
 
-            // حفظ الإيميل محليًا
-            try {
-              if (val.includes("@")) {
-                localStorage.setItem(EMAIL_STORAGE_KEY, val);
-              }
-            } catch (e) {}
+  // حفظ الإيميل محليًا
+  try {
+    if (val.includes("@")) {
+      localStorage.setItem(EMAIL_STORAGE_KEY, val);
+    }
+  } catch (e) {}
 
-            const msg =
-              lang === "en"
-                ? "Subscribed successfully ✓"
-                : "تم الاشتراك بنجاح ✓";
-            showActionToast(msg);
-          });
+  // ============================
+  // Lead Event (Option B)
+  // ============================
+  const leadPayload = {
+    event_type: "lead_capture",
+    lead_source: "novabot_ui",
+
+    action: "اشتراك",
+    card_id: "subscribe",
+
+    contact: {
+      email: val
+    },
+
+    user_context: {
+      language: lang,
+      device: isMobileViewport() ? "mobile" : "desktop",
+      page_url: window.location.href
+    },
+
+    conversation_context: {
+      session_id: STORAGE_KEY
+    },
+
+    meta: {
+      timestamp: Date.now(),
+      version: "lead_v1"
+    }
+  };
+
+  dispatchNovaLeadEvent(leadPayload);
+
+  const successMsg =
+    lang === "en"
+      ? "Subscribed successfully ✓"
+      : "تم الاشتراك بنجاح ✓";
+  showActionToast(successMsg);
+});
         }
 
         if (secondaryBtn) {
