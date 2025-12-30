@@ -20,6 +20,26 @@ const NovaUIState = {
 };
 
   const API_URL = scriptEl.getAttribute("data-novabot-api") || "";
+   function reportLoaderStage(stage, status, extra = {}) {
+  if (!API_URL) return;
+
+  try {
+    fetch(API_URL.replace(/\/+$/, "") + "/telemetry", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        source: "novabot-loader",
+        stage,
+        status, // "success" | "fail"
+        extra,
+        ts: Date.now()
+      })
+    });
+  } catch (e) {}
+}
+
   const LOCALE = scriptEl.getAttribute("data-novabot-locale") || "ar";
 
   // ===========================
@@ -177,17 +197,46 @@ const NovaUIState = {
   const cssUrl = baseUrl + "ui.css";
   const htmlUrl = baseUrl + "ui.html";
 
-  Promise.all([
-    fetch(cssUrl).then((r) => r.text()),
-    fetch(htmlUrl).then((r) => r.text())
-  ])
-    .then(([cssText, htmlText]) => {
-      shadow.innerHTML = `<style>${cssText}</style>${htmlText}`;
-      initNovaBot(shadow, { apiUrl: API_URL, locale: LOCALE });
+  reportLoaderStage("loader_start", "success");
+
+Promise.all([
+  fetch(cssUrl)
+    .then((r) => {
+      if (!r.ok) throw new Error("css_fetch_failed");
+      return r.text();
     })
-    .catch((err) => {
-      console.error("NovaBot loader error:", err);
-    });
+    .then((css) => {
+      reportLoaderStage("ui_css_loaded", "success");
+      return css;
+    }),
+
+  fetch(htmlUrl)
+    .then((r) => {
+      if (!r.ok) throw new Error("html_fetch_failed");
+      return r.text();
+    })
+    .then((html) => {
+      reportLoaderStage("ui_html_loaded", "success");
+      return html;
+    })
+])
+  .then(([cssText, htmlText]) => {
+    shadow.innerHTML = `<style>${cssText}</style>${htmlText}`;
+    reportLoaderStage("shadow_injected", "success");
+
+    try {
+      initNovaBot(shadow, { apiUrl: API_URL, locale: LOCALE });
+      reportLoaderStage("init_novabot", "success");
+    } catch (e) {
+      reportLoaderStage("init_novabot", "fail", { error: String(e) });
+      throw e;
+    }
+  })
+  .catch((err) => {
+    reportLoaderStage("loader_failed", "fail", { error: String(err) });
+    console.error("NovaBot loader error:", err);
+  });
+
 
 // ================================
 // NovaBot Loader – Phase 1
