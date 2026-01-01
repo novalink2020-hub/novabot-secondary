@@ -373,7 +373,9 @@ Promise.all([
 
     attachAutofill(input);
 
-btn.addEventListener("click", async () => {
+btn.addEventListener("click", (e) => {
+  e.preventDefault();
+
   const contact = (input.value || "").trim();
   if (!contact) {
     alert("يرجى إدخال وسيلة تواصل.");
@@ -383,24 +385,20 @@ btn.addEventListener("click", async () => {
 
   saveUserContact(contact);
 
-  // ✅ Step 5.1.5 — Lead Event: استشارة (يرتبط بالجلسة عبر الهيدر)
-  await dispatchNovaLeadEvent({
+  // 🔹 أرسل الليد مرة واحدة فقط – بدون await
+  dispatchNovaLeadEvent({
     event_type: "lead_capture",
     lead_source: "novabot_ui",
-
     action: "حجز_استشارة",
     card_id: "bot_lead",
-
     contact: {
       email_or_phone: contact
     },
-
     user_context: {
-      language: lang,
+      language: LOCALE === "en" ? "en" : "ar",
       device: isMobileViewport() ? "mobile" : "desktop",
       page_url: window.location.href
     },
-
     meta: {
       timestamp: Date.now(),
       version: "lead_v1"
@@ -424,34 +422,14 @@ ${contact}
 تم إرسال هذه الرسالة عبر نوفا بوت.`
   );
 
-   // ============================
-// Lead Event — Consultation
-// ============================
-dispatchNovaLeadEvent({
-  event_type: "lead_capture",
-  action: "حجز_استشارة",
-  card_id: "bot_lead",
-
-  contact: {
-    email: contact
-  },
-
-  user_context: {
-    page_url: window.location.href,
-    device: isMobileViewport() ? "mobile" : "desktop",
-    language: lang
-  },
-
-  meta: {
-    timestamp: Date.now()
-  }
-});
-
-  window.location.href =
-    "mailto:contact@novalink-ai.com?subject=" +
-    subject +
-    "&body=" +
-    body;
+  // ⏳ مهلة صغيرة لضمان تنفيذ fetch
+  setTimeout(() => {
+    window.location.href =
+      "mailto:contact@novalink-ai.com?subject=" +
+      subject +
+      "&body=" +
+      body;
+  }, 450);
 });
 
 
@@ -486,12 +464,13 @@ card.innerHTML = `
      const input = card.querySelector(".nova-card-input");
 attachAutofill(input);
 
-btn.addEventListener("click", async () => {
+btn.addEventListener("click", (e) => {
+  e.preventDefault();
   const contact = input ? (input.value || "").trim() : "";
   if (contact) saveUserContact(contact);
 
   // ✅ Step 5.1.5 — Lead Event: تعاون
-  await dispatchNovaLeadEvent({
+  dispatchNovaLeadEvent({
     event_type: "lead_capture",
     lead_source: "novabot_ui",
 
@@ -503,7 +482,7 @@ btn.addEventListener("click", async () => {
     },
 
     user_context: {
-      language: lang,
+      language: LOCALE === "en" ? "en" : "ar",
       device: isMobileViewport() ? "mobile" : "desktop",
       page_url: window.location.href
     },
@@ -537,7 +516,7 @@ setTimeout(() => {
     subject +
     "&body=" +
     body;
-}, 350);
+}, 450);
 });
 
 
@@ -591,7 +570,7 @@ setTimeout(() => {
 
     const STORAGE_KEY = "novabot_v6.9_conversation";
     const STORAGE_TTL_MS = 12 * 60 * 60 * 1000;
-    const EMAIL_STORAGE_KEY = "novabot_user_email"; // لتخزين آخر إيميل أدخله المستخدم
+    const EMAIL_STORAGE_KEY = "novabot_user_contact"; // لتخزين آخر إيميل أدخله المستخدم
 const SEND_COOLDOWN_MS = 800; // منع الإرسال المتكرر السريع
 // ============================================================
 // Lead Event Dispatcher (Frontend)
@@ -600,17 +579,22 @@ async function dispatchNovaLeadEvent(payload) {
   if (!config.API_PRIMARY) return;
 
   // مهم جدًا: نضمن وجود sessionToken قبل إرسال الليد
+// نضمن وجود Session Token حتى لو فشل الطلب الأول
+try {
   await ensureSessionToken();
+} catch {}
 
   try {
     const base = config.API_PRIMARY.replace(/\/+$/, "");
 
     fetch(base + "/lead-event", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(sessionToken ? { "X-NOVABOT-SESSION": sessionToken } : {})
-      },
+headers: {
+  "Content-Type": "application/json",
+  ...(sessionToken ? { "X-NOVABOT-SESSION": sessionToken } : {}),
+  "X-NOVABOT-SESSION-MODE": "public"
+},
+
       body: JSON.stringify(payload)
     });
   } catch (e) {}
@@ -1054,37 +1038,6 @@ NovaUIState.isTyping = true;
       }, 2500);
     }
 
-    // ============================================================
-    //                     API CALL
-    // ============================================================
-    async function callNovaApi(message) {
-      if (!config.API_PRIMARY) return { ok: false, reply: "" };
-
-      // Layer 2: تأكد من وجود Session Token قبل الطلب
-      await ensureSessionToken();
-
-      try {
-        const res = await fetch(config.API_PRIMARY, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(sessionToken ? { "X-NOVABOT-SESSION": sessionToken } : {})
-          },
-          body: JSON.stringify({ message })
-        });
-
-        if (!res.ok) return { ok: false, reply: "" };
-
-        const data = await res.json();
-        return {
-          ok: data.ok,
-          reply: data.reply,
-          actionCard: data.actionCard || null
-        };
-      } catch {
-        return { ok: false, reply: "" };
-      }
-    }
 
     // ============================================================
     //                     API CALL (Override) — Layer 4 Turnstile
@@ -1160,69 +1113,6 @@ NovaUIState.isTyping = true;
         } catch (e) {}
       }
 
-      // بطاقة الاشتراك / الأعمال
-      if (isSubscribeCard) {
-        if (primaryBtn && inputEl) {
-primaryBtn.addEventListener("click", (e) => {
-  e.preventDefault();
-
-  const val = (inputEl.value || "").trim();
-  if (!val) {
-    const msg =
-      lang === "en"
-        ? "Please enter your email first."
-        : "من فضلك أدخل بريدك الإلكتروني أولاً.";
-    showActionToast(msg);
-    inputEl.focus();
-    return;
-  }
-
-  // حفظ الإيميل محليًا
-  try {
-    if (val.includes("@")) {
-      localStorage.setItem(EMAIL_STORAGE_KEY, val);
-    }
-  } catch (e) {}
-
-  // ============================
-  // Lead Event (Option B)
-  // ============================
-  const leadPayload = {
-    event_type: "lead_capture",
-    lead_source: "novabot_ui",
-
-    action: "اشتراك",
-    card_id: "subscribe",
-
-    contact: {
-      email: val
-    },
-
-    user_context: {
-      language: lang,
-      device: isMobileViewport() ? "mobile" : "desktop",
-      page_url: window.location.href
-    },
-
-    conversation_context: {
-      session_id: STORAGE_KEY
-    },
-
-    meta: {
-      timestamp: Date.now(),
-      version: "lead_v1"
-    }
-  };
-
-  dispatchNovaLeadEvent(leadPayload);
-
-  const successMsg =
-    lang === "en"
-      ? "Subscribed successfully ✓"
-      : "تم الاشتراك بنجاح ✓";
-  showActionToast(successMsg);
-});
-        }
 
         if (secondaryBtn) {
           secondaryBtn.addEventListener("click", (e) => {
@@ -1254,66 +1144,7 @@ primaryBtn.addEventListener("click", (e) => {
         }
       }
 
-      // بطاقة التعاون / الشراكات
-      if (isCollabCard && primaryBtn) {
-        primaryBtn.addEventListener("click", (e) => {
-          e.preventDefault();
 
-          const contactVal = inputEl ? (inputEl.value || "").trim() : "";
-
-          const subject =
-            lang === "en"
-              ? "NovaLink - Collaboration Request"
-              : "نوفا لينك - طلب تعاون";
-
-          const body =
-            lang === "en"
-              ? `Visitor contact: ${contactVal || "Not provided"}\n\nMessage:`
-              : `بيانات طريقة التواصل:\n${
-                  contactVal || "لم يتم كتابة وسيلة تواصل"
-                }\n\nتفاصيل إضافية:`;
-
-          const mailto =
-            "mailto:" +
-            encodeURIComponent(config.CONTACT_EMAIL) +
-            "?subject=" +
-            encodeURIComponent(subject) +
-            "&body=" +
-            encodeURIComponent(body);
-           // ============================
-// Lead Event — Collaboration
-// ============================
-dispatchNovaLeadEvent({
-  event_type: "lead_capture",
-  action: "تعاون",
-  card_id: "collaboration",
-
-  contact: {
-    email: contactVal || ""
-  },
-
-  user_context: {
-    page_url: window.location.href,
-    device: isMobileViewport() ? "mobile" : "desktop",
-    language: lang
-  },
-
-  meta: {
-    timestamp: Date.now()
-  }
-});
-
-
-          window.location.href = mailto;
-
-          const msg =
-            lang === "en"
-              ? "Email window prepared for collaboration."
-              : "تم تجهيز رسالة البريد للتعاون.";
-          showActionToast(msg);
-        });
-      }
-    }
 
     function appendCardInsideLastBotBubble(cardEl) {
       if (!cardEl) return;
