@@ -510,33 +510,13 @@ function dispatchNovaLeadEvent(payload) {
   if (!config.API_PRIMARY) return;
 
   try {
-async function dispatchNovaLeadEvent(payload) {
-  if (!config.API_PRIMARY) return;
-
-  // تأكد من وجود Session Token
-  await ensureSessionToken();
-
-  // Turnstile token (إن وجد)
-  let tsToken = "";
-  try {
-    tsToken = await getTurnstileToken();
-  } catch {
-    tsToken = "";
-  }
-
-  try {
     fetch(config.API_PRIMARY.replace(/\/+$/, "") + "/lead-event", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        ...(sessionToken ? { "X-NOVABOT-SESSION": sessionToken } : {}),
-        ...(tsToken ? { "X-NOVABOT-TS-TOKEN": tsToken } : {})
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(payload)
     });
-  } catch (e) {}
-}
-
   } catch (e) {}
 }
 
@@ -1088,7 +1068,7 @@ NovaUIState.isTyping = true;
       // بطاقة الاشتراك / الأعمال
       if (isSubscribeCard) {
         if (primaryBtn && inputEl) {
-           primaryBtn.addEventListener("click", async (e) => {
+primaryBtn.addEventListener("click", (e) => {
   e.preventDefault();
 
   const val = (inputEl.value || "").trim();
@@ -1102,35 +1082,43 @@ NovaUIState.isTyping = true;
     return;
   }
 
+  // حفظ الإيميل محليًا
   try {
     if (val.includes("@")) {
       localStorage.setItem(EMAIL_STORAGE_KEY, val);
     }
   } catch (e) {}
 
+  // ============================
+  // Lead Event (Option B)
+  // ============================
   const leadPayload = {
     event_type: "lead_capture",
     lead_source: "novabot_ui",
+
     action: "اشتراك",
     card_id: "subscribe",
+
     contact: {
       email: val
     },
+
     user_context: {
       language: lang,
       device: isMobileViewport() ? "mobile" : "desktop",
       page_url: window.location.href
     },
+
     conversation_context: {
-      session_id: sessionToken || null
+      session_id: STORAGE_KEY
     },
+
     meta: {
       timestamp: Date.now(),
       version: "lead_v1"
     }
   };
 
-  // ✅ انتظر الإرسال
   dispatchNovaLeadEvent(leadPayload);
 
   const successMsg =
@@ -1139,8 +1127,6 @@ NovaUIState.isTyping = true;
       : "تم الاشتراك بنجاح ✓";
   showActionToast(successMsg);
 });
-
-
         }
 
         if (secondaryBtn) {
