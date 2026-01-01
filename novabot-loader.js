@@ -510,13 +510,13 @@ function dispatchNovaLeadEvent(payload) {
   if (!config.API_PRIMARY) return;
 
   try {
-    fetch(config.API_PRIMARY.replace(/\/+$/, "") + "/lead-event", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+fetch(config.API_PRIMARY.replace(/\/+$/, "") + "/lead-event", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(payload)
+});
   } catch (e) {}
 }
 
@@ -1109,9 +1109,10 @@ primaryBtn.addEventListener("click", (e) => {
       page_url: window.location.href
     },
 
-    conversation_context: {
-      session_id: STORAGE_KEY
-    },
+conversation_context: {
+  session_id: sessionToken || null
+},
+
 
     meta: {
       timestamp: Date.now(),
