@@ -1099,6 +1099,65 @@ NovaUIState.isTyping = true;
         /اشترك|طوّر عملك|طوّر عملك خطوة بخطوة|subscribe/i.test(headerText);
 
       const isCollabCard = /تعاون|شراكة|collaborat/i.test(headerText);
+         // ===============================
+  // 🔥 FIX: Re-bind Primary Buttons
+  // ===============================
+  if (primaryBtn) {
+    primaryBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+
+      const contact = inputEl ? (inputEl.value || "").trim() : "";
+
+      // بطاقة اشتراك
+      if (isSubscribeCard) {
+        if (!contact) {
+          showActionToast("يرجى إدخال بريدك الإلكتروني أولاً.");
+          inputEl && inputEl.focus();
+          return;
+        }
+
+        try {
+          if (contact.includes("@")) {
+            localStorage.setItem(EMAIL_STORAGE_KEY, contact);
+          }
+        } catch {}
+
+        showActionToast("تم تسجيل اهتمامك بالاشتراك ✓");
+        return;
+      }
+
+      // بطاقة تعاون
+      if (isCollabCard) {
+        showActionToast("سيتم فتح البريد للتواصل…");
+
+        setTimeout(() => {
+          window.location.href =
+            "mailto:contact@novalink-ai.com?subject=" +
+            encodeURIComponent("تعاون مع نوفا لينك");
+        }, 300);
+
+        return;
+      }
+
+      // بطاقة حجز استشارة
+      if (/استشارة|bot/i.test(headerText)) {
+        if (!contact) {
+          showActionToast("يرجى إدخال وسيلة تواصل.");
+          inputEl && inputEl.focus();
+          return;
+        }
+
+        showActionToast("جارٍ فتح نموذج الاستشارة…");
+
+        setTimeout(() => {
+          window.location.href =
+            "mailto:contact@novalink-ai.com?subject=" +
+            encodeURIComponent("طلب استشارة");
+        }, 300);
+      }
+    });
+  }
+
 
       // إعداد حقل الإدخال (ايميل غالباً)
       if (inputEl) {
