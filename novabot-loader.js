@@ -1140,7 +1140,7 @@ conversation_context: {
     }
   };
 
-  await dispatchNovaLeadEvent(leadPayload);
+  dispatchNovaLeadEvent(leadPayload);
 
   const successMsg =
     lang === "en"
