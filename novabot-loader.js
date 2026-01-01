@@ -1113,9 +1113,10 @@ primaryBtn.addEventListener("click", (e) => {
       page_url: window.location.href
     },
 
-    conversation_context: {
-      session_id: STORAGE_KEY
-    },
+conversation_context: {
+  session_id: sessionToken || null
+},
+
 
     meta: {
       timestamp: Date.now(),
