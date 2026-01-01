@@ -424,6 +424,29 @@ ${contact}
 تم إرسال هذه الرسالة عبر نوفا بوت.`
   );
 
+   // ============================
+// Lead Event — Consultation
+// ============================
+dispatchNovaLeadEvent({
+  event_type: "lead_capture",
+  action: "حجز_استشارة",
+  card_id: "bot_lead",
+
+  contact: {
+    email: contact
+  },
+
+  user_context: {
+    page_url: window.location.href,
+    device: isMobileViewport() ? "mobile" : "desktop",
+    language: lang
+  },
+
+  meta: {
+    timestamp: Date.now()
+  }
+});
+
   window.location.href =
     "mailto:contact@novalink-ai.com?subject=" +
     subject +
@@ -1257,6 +1280,29 @@ primaryBtn.addEventListener("click", (e) => {
             encodeURIComponent(subject) +
             "&body=" +
             encodeURIComponent(body);
+           // ============================
+// Lead Event — Collaboration
+// ============================
+dispatchNovaLeadEvent({
+  event_type: "lead_capture",
+  action: "تعاون",
+  card_id: "collaboration",
+
+  contact: {
+    email: contactVal || ""
+  },
+
+  user_context: {
+    page_url: window.location.href,
+    device: isMobileViewport() ? "mobile" : "desktop",
+    language: lang
+  },
+
+  meta: {
+    timestamp: Date.now()
+  }
+});
+
 
           window.location.href = mailto;
 
