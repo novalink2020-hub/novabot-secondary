@@ -510,15 +510,33 @@ function dispatchNovaLeadEvent(payload) {
   if (!config.API_PRIMARY) return;
 
   try {
+  async function dispatchNovaLeadEvent(payload) {
+  if (!config.API_PRIMARY) return;
+
+  // تأكد من وجود Session Token
+  await ensureSessionToken();
+
+  // Turnstile token (إن وجد)
+  let tsToken = "";
+  try {
+    tsToken = await getTurnstileToken();
+  } catch {
+    tsToken = "";
+  }
+
+  try {
     fetch(config.API_PRIMARY.replace(/\/+$/, "") + "/lead-event", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        ...(sessionToken ? { "X-NOVABOT-SESSION": sessionToken } : {}),
+        ...(tsToken ? { "X-NOVABOT-TS-TOKEN": tsToken } : {})
       },
       body: JSON.stringify(payload)
     });
   } catch (e) {}
 }
+
 
      
     // عناصر الواجهة
