@@ -510,33 +510,15 @@ function dispatchNovaLeadEvent(payload) {
   if (!config.API_PRIMARY) return;
 
   try {
-  async function dispatchNovaLeadEvent(payload) {
-  if (!config.API_PRIMARY) return;
-
-  // تأكد من وجود Session Token
-  await ensureSessionToken();
-
-  // Turnstile token (إن وجد)
-  let tsToken = "";
-  try {
-    tsToken = await getTurnstileToken();
-  } catch {
-    tsToken = "";
-  }
-
-  try {
     fetch(config.API_PRIMARY.replace(/\/+$/, "") + "/lead-event", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        ...(sessionToken ? { "X-NOVABOT-SESSION": sessionToken } : {}),
-        ...(tsToken ? { "X-NOVABOT-TS-TOKEN": tsToken } : {})
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(payload)
     });
   } catch (e) {}
 }
-
 
      
     // عناصر الواجهة
@@ -1056,10 +1038,6 @@ NovaUIState.isTyping = true;
     // ============================================================
     // تفعيل منطق البطاقات (اشترك / صفحة الاشتراك / خدمات / تعاون)
     function initCardBehavior(cardEl) {
-       // 🔒 Prevent duplicate bindings (SaaS-safe guard)
-if (cardEl.dataset.novaBound === "1") return;
-cardEl.dataset.novaBound = "1";
-
       if (!cardEl) return;
 
       const headerEl = cardEl.querySelector(".nova-card-header");
@@ -1131,10 +1109,9 @@ primaryBtn.addEventListener("click", (e) => {
       page_url: window.location.href
     },
 
-conversation_context: {
-  session_id: sessionToken || null
-},
-
+    conversation_context: {
+      session_id: STORAGE_KEY
+    },
 
     meta: {
       timestamp: Date.now(),
