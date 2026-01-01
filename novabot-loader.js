@@ -373,41 +373,19 @@ Promise.all([
 
     attachAutofill(input);
 
-btn.addEventListener("click", (e) => {
-  e.preventDefault();
+    btn.addEventListener("click", () => {
+      const contact = (input.value || "").trim();
+      if (!contact) {
+        alert("يرجى إدخال وسيلة تواصل.");
+        input.focus();
+        return;
+      }
 
-  const contact = (input.value || "").trim();
-  if (!contact) {
-    alert("يرجى إدخال وسيلة تواصل.");
-    input.focus();
-    return;
-  }
+      saveUserContact(contact);
 
-  saveUserContact(contact);
-
-  // 🔹 أرسل الليد مرة واحدة فقط – بدون await
-  dispatchNovaLeadEvent({
-    event_type: "lead_capture",
-    lead_source: "novabot_ui",
-    action: "حجز_استشارة",
-    card_id: "bot_lead",
-    contact: {
-      email_or_phone: contact
-    },
-    user_context: {
-      language: LOCALE === "en" ? "en" : "ar",
-      device: isMobileViewport() ? "mobile" : "desktop",
-      page_url: window.location.href
-    },
-    meta: {
-      timestamp: Date.now(),
-      version: "lead_v1"
-    }
-  });
-
-  const subject = encodeURIComponent("طلب استشارة – بوت دردشة لعملي");
-  const body = encodeURIComponent(
-    `مرحبًا فريق نوفا لينك،
+      const subject = encodeURIComponent("طلب استشارة – بوت دردشة لعملي");
+      const body = encodeURIComponent(
+        `مرحبًا فريق نوفا لينك،
 
 لدي مشروع وأفكّر في استخدام بوت دردشة لتخفيف ضغط الاستفسارات
 وتحسين تجربة العملاء.
@@ -420,18 +398,14 @@ ${contact}
 أكثر تحدٍ أواجهه حاليًا:
 
 تم إرسال هذه الرسالة عبر نوفا بوت.`
-  );
+      );
 
-  // ⏳ مهلة صغيرة لضمان تنفيذ fetch
-  setTimeout(() => {
-    window.location.href =
-      "mailto:contact@novalink-ai.com?subject=" +
-      subject +
-      "&body=" +
-      body;
-  }, 450);
-});
-
+      window.location.href =
+        "mailto:contact@novalink-ai.com?subject=" +
+        subject +
+        "&body=" +
+        body;
+    });
 
     return card;
   }
@@ -440,62 +414,26 @@ ${contact}
     const card = document.createElement("div");
     card.className = "nova-card";
 
-card.innerHTML = `
-  <div class="nova-card-header">🤝 تعاون وشراكات</div>
-  <div class="nova-card-text">
-    نرحّب بالتعاونات الجادة المرتبطة بالذكاء الاصطناعي للأعمال:
-    محتوى، شراكات، ورش عمل، أو مشاريع مشتركة ذات قيمة حقيقية.
-  </div>
+    card.innerHTML = `
+      <div class="nova-card-header">🤝 تعاون وشراكات</div>
+      <div class="nova-card-text">
+        نرحّب بالتعاونات الجادة المرتبطة بالذكاء الاصطناعي للأعمال:
+        محتوى، شراكات، ورش عمل، أو مشاريع مشتركة ذات قيمة حقيقية.
+      </div>
 
-  <input
-    type="text"
-    class="nova-card-input"
-    placeholder="بريدك الإلكتروني أو رقم واتساب"
-  />
-
-  <div class="nova-card-actions">
-    <button class="nova-card-btn nova-card-btn-primary">
-      تواصل عبر البريد
-    </button>
-  </div>
-`;
+      <div class="nova-card-actions">
+        <button class="nova-card-btn nova-card-btn-primary">
+          تواصل عبر البريد
+        </button>
+      </div>
+    `;
 
     const btn = card.querySelector(".nova-card-btn-primary");
-     const input = card.querySelector(".nova-card-input");
-attachAutofill(input);
 
-btn.addEventListener("click", (e) => {
-  e.preventDefault();
-  const contact = input ? (input.value || "").trim() : "";
-  if (contact) saveUserContact(contact);
-
-  // ✅ Step 5.1.5 — Lead Event: تعاون
-  dispatchNovaLeadEvent({
-    event_type: "lead_capture",
-    lead_source: "novabot_ui",
-
-    action: "تعاون",
-    card_id: "collaboration",
-
-    contact: {
-      email_or_phone: contact
-    },
-
-    user_context: {
-      language: LOCALE === "en" ? "en" : "ar",
-      device: isMobileViewport() ? "mobile" : "desktop",
-      page_url: window.location.href
-    },
-
-    meta: {
-      timestamp: Date.now(),
-      version: "lead_v1"
-    }
-  });
-
-  const subject = encodeURIComponent("مقترح تعاون مع نوفا لينك");
-const body = encodeURIComponent(
-  `مرحبًا فريق نوفا لينك،
+    btn.addEventListener("click", () => {
+      const subject = encodeURIComponent("مقترح تعاون مع نوفا لينك");
+      const body = encodeURIComponent(
+        `مرحبًا فريق نوفا لينك،
 
 أود مناقشة فكرة تعاون معكم.
 
@@ -503,22 +441,15 @@ const body = encodeURIComponent(
 الجمهور المستهدف:
 القيمة المتوقعة للطرفين:
 
-وسيلة التواصل:
-${contact || "لم يتم إدخال وسيلة تواصل"}
-
 تم إرسال هذه الرسالة عبر نوفا بوت.`
-);
+      );
 
-
-setTimeout(() => {
-  window.location.href =
-    "mailto:contact@novalink-ai.com?subject=" +
-    subject +
-    "&body=" +
-    body;
-}, 450);
-});
-
+      window.location.href =
+        "mailto:contact@novalink-ai.com?subject=" +
+        subject +
+        "&body=" +
+        body;
+    });
 
     return card;
   }
@@ -570,35 +501,25 @@ setTimeout(() => {
 
     const STORAGE_KEY = "novabot_v6.9_conversation";
     const STORAGE_TTL_MS = 12 * 60 * 60 * 1000;
-    const EMAIL_STORAGE_KEY = "novabot_user_contact"; // لتخزين آخر إيميل أدخله المستخدم
+    const EMAIL_STORAGE_KEY = "novabot_user_email"; // لتخزين آخر إيميل أدخله المستخدم
 const SEND_COOLDOWN_MS = 800; // منع الإرسال المتكرر السريع
 // ============================================================
 // Lead Event Dispatcher (Frontend)
 // ============================================================
-async function dispatchNovaLeadEvent(payload) {
+function dispatchNovaLeadEvent(payload) {
   if (!config.API_PRIMARY) return;
 
-  // مهم جدًا: نضمن وجود sessionToken قبل إرسال الليد
-// نضمن وجود Session Token حتى لو فشل الطلب الأول
-try {
-  await ensureSessionToken();
-} catch {}
-
   try {
-    const base = config.API_PRIMARY.replace(/\/+$/, "");
-
-    fetch(base + "/lead-event", {
+    fetch(config.API_PRIMARY.replace(/\/+$/, "") + "/lead-event", {
       method: "POST",
-headers: {
-  "Content-Type": "application/json",
-  ...(sessionToken ? { "X-NOVABOT-SESSION": sessionToken } : {}),
-  "X-NOVABOT-SESSION-MODE": "public"
-},
-
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify(payload)
     });
   } catch (e) {}
 }
+
      
     // عناصر الواجهة
     const fabBtn = root.getElementById("novaFabBtn");
@@ -1038,6 +959,37 @@ NovaUIState.isTyping = true;
       }, 2500);
     }
 
+    // ============================================================
+    //                     API CALL
+    // ============================================================
+    async function callNovaApi(message) {
+      if (!config.API_PRIMARY) return { ok: false, reply: "" };
+
+      // Layer 2: تأكد من وجود Session Token قبل الطلب
+      await ensureSessionToken();
+
+      try {
+        const res = await fetch(config.API_PRIMARY, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(sessionToken ? { "X-NOVABOT-SESSION": sessionToken } : {})
+          },
+          body: JSON.stringify({ message })
+        });
+
+        if (!res.ok) return { ok: false, reply: "" };
+
+        const data = await res.json();
+        return {
+          ok: data.ok,
+          reply: data.reply,
+          actionCard: data.actionCard || null
+        };
+      } catch {
+        return { ok: false, reply: "" };
+      }
+    }
 
     // ============================================================
     //                     API CALL (Override) — Layer 4 Turnstile
@@ -1099,65 +1051,6 @@ NovaUIState.isTyping = true;
         /اشترك|طوّر عملك|طوّر عملك خطوة بخطوة|subscribe/i.test(headerText);
 
       const isCollabCard = /تعاون|شراكة|collaborat/i.test(headerText);
-         // ===============================
-  // 🔥 FIX: Re-bind Primary Buttons
-  // ===============================
-  if (primaryBtn) {
-    primaryBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-
-      const contact = inputEl ? (inputEl.value || "").trim() : "";
-
-      // بطاقة اشتراك
-      if (isSubscribeCard) {
-        if (!contact) {
-          showActionToast("يرجى إدخال بريدك الإلكتروني أولاً.");
-          inputEl && inputEl.focus();
-          return;
-        }
-
-        try {
-          if (contact.includes("@")) {
-            localStorage.setItem(EMAIL_STORAGE_KEY, contact);
-          }
-        } catch {}
-
-        showActionToast("تم تسجيل اهتمامك بالاشتراك ✓");
-        return;
-      }
-
-      // بطاقة تعاون
-      if (isCollabCard) {
-        showActionToast("سيتم فتح البريد للتواصل…");
-
-        setTimeout(() => {
-          window.location.href =
-            "mailto:contact@novalink-ai.com?subject=" +
-            encodeURIComponent("تعاون مع نوفا لينك");
-        }, 300);
-
-        return;
-      }
-
-      // بطاقة حجز استشارة
-      if (/استشارة|bot/i.test(headerText)) {
-        if (!contact) {
-          showActionToast("يرجى إدخال وسيلة تواصل.");
-          inputEl && inputEl.focus();
-          return;
-        }
-
-        showActionToast("جارٍ فتح نموذج الاستشارة…");
-
-        setTimeout(() => {
-          window.location.href =
-            "mailto:contact@novalink-ai.com?subject=" +
-            encodeURIComponent("طلب استشارة");
-        }, 300);
-      }
-    });
-  }
-
 
       // إعداد حقل الإدخال (ايميل غالباً)
       if (inputEl) {
@@ -1172,6 +1065,69 @@ NovaUIState.isTyping = true;
         } catch (e) {}
       }
 
+      // بطاقة الاشتراك / الأعمال
+      if (isSubscribeCard) {
+        if (primaryBtn && inputEl) {
+primaryBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+
+  const val = (inputEl.value || "").trim();
+  if (!val) {
+    const msg =
+      lang === "en"
+        ? "Please enter your email first."
+        : "من فضلك أدخل بريدك الإلكتروني أولاً.";
+    showActionToast(msg);
+    inputEl.focus();
+    return;
+  }
+
+  // حفظ الإيميل محليًا
+  try {
+    if (val.includes("@")) {
+      localStorage.setItem(EMAIL_STORAGE_KEY, val);
+    }
+  } catch (e) {}
+
+  // ============================
+  // Lead Event (Option B)
+  // ============================
+  const leadPayload = {
+    event_type: "lead_capture",
+    lead_source: "novabot_ui",
+
+    action: "اشتراك",
+    card_id: "subscribe",
+
+    contact: {
+      email: val
+    },
+
+    user_context: {
+      language: lang,
+      device: isMobileViewport() ? "mobile" : "desktop",
+      page_url: window.location.href
+    },
+
+    conversation_context: {
+      session_id: STORAGE_KEY
+    },
+
+    meta: {
+      timestamp: Date.now(),
+      version: "lead_v1"
+    }
+  };
+
+  dispatchNovaLeadEvent(leadPayload);
+
+  const successMsg =
+    lang === "en"
+      ? "Subscribed successfully ✓"
+      : "تم الاشتراك بنجاح ✓";
+  showActionToast(successMsg);
+});
+        }
 
         if (secondaryBtn) {
           secondaryBtn.addEventListener("click", (e) => {
@@ -1203,7 +1159,43 @@ NovaUIState.isTyping = true;
         }
       }
 
+      // بطاقة التعاون / الشراكات
+      if (isCollabCard && primaryBtn) {
+        primaryBtn.addEventListener("click", (e) => {
+          e.preventDefault();
 
+          const contactVal = inputEl ? (inputEl.value || "").trim() : "";
+
+          const subject =
+            lang === "en"
+              ? "NovaLink - Collaboration Request"
+              : "نوفا لينك - طلب تعاون";
+
+          const body =
+            lang === "en"
+              ? `Visitor contact: ${contactVal || "Not provided"}\n\nMessage:`
+              : `بيانات طريقة التواصل:\n${
+                  contactVal || "لم يتم كتابة وسيلة تواصل"
+                }\n\nتفاصيل إضافية:`;
+
+          const mailto =
+            "mailto:" +
+            encodeURIComponent(config.CONTACT_EMAIL) +
+            "?subject=" +
+            encodeURIComponent(subject) +
+            "&body=" +
+            encodeURIComponent(body);
+
+          window.location.href = mailto;
+
+          const msg =
+            lang === "en"
+              ? "Email window prepared for collaboration."
+              : "تم تجهيز رسالة البريد للتعاون.";
+          showActionToast(msg);
+        });
+      }
+    }
 
     function appendCardInsideLastBotBubble(cardEl) {
       if (!cardEl) return;
