@@ -463,8 +463,10 @@ ${contact}
         card_id: "bot_consultation",
 
         contact: {
-          value: contact,
-        },
+  value: contact,
+  ...(contact.includes("@") ? { email: contact } : {}),
+},
+
 
         user_context: {
           language: lang,
