@@ -414,6 +414,8 @@ primaryBtn.addEventListener("click", async () => {
 
 btn.addEventListener("click", async () => {
   const contact = (input.value || "").trim();
+console.log("🟡 CONSULT BTN CLICKED", contact);
+   
   if (!contact) {
     alert("يرجى إدخال وسيلة تواصل.");
     input.focus();
@@ -589,6 +591,8 @@ ${contact}
     // Lead Event Dispatcher (Frontend)
     // ============================================================
 async function dispatchNovaLeadEvent(payload) {
+     console.log("🚨 DISPATCH LEAD CALLED", payload);
+   
   if (!config.API_PRIMARY) {
     console.warn("NovaBot Lead: API_PRIMARY missing");
     return;
