@@ -422,44 +422,44 @@ btn.addEventListener("click", () => {
 
   saveUserContact(contact);
 
-  // 1️⃣ Lead Event أولًا
-  ensureSessionToken().then(() => {
-    const leadPayload = {
-      event_type: "lead_capture",
-      lead_source: "novabot_ui",
+  // ============================
+  // 1️⃣ Lead Event (Fire & Forget)
+  // ============================
+  ensureSessionToken();
+  dispatchNovaLeadEvent({
+    event_type: "lead_capture",
+    lead_source: "novabot_ui",
 
-      action: "حجز_استشارة",
-      card_id: "bot_consultation",
+    action: "حجز_استشارة",
+    card_id: "bot_consultation",
 
-      contact: {
-        value: contact,
-        ...(contact.includes("@") ? { email: contact } : {}),
-      },
+    contact: {
+      value: contact,
+      ...(contact.includes("@") ? { email: contact } : {}),
+    },
 
-      user_context: {
-        language: lang,
-        device: isMobileViewport() ? "mobile" : "desktop",
-        page_url: window.location.href,
-      },
+    user_context: {
+      language: lang,
+      device: isMobileViewport() ? "mobile" : "desktop",
+      page_url: window.location.href,
+    },
 
-      conversation_context: {
-        session_id: sessionToken || "",
-      },
+    conversation_context: {
+      session_id: sessionToken || "",
+    },
 
-      meta: {
-        timestamp: Date.now(),
-        version: "lead_v1",
-      },
-    };
-
-    dispatchNovaLeadEvent(leadPayload);
+    meta: {
+      timestamp: Date.now(),
+      version: "lead_v1",
+    },
   });
 
-  // 2️⃣ mailto بعد repaint واحد
-  requestAnimationFrame(() => {
-    const subject = encodeURIComponent("طلب استشارة – بوت دردشة لعملي");
-    const body = encodeURIComponent(
-      `مرحبًا فريق نوفا لينك،
+  // ============================
+  // 2️⃣ EMAIL — النص الأصلي حرفيًا
+  // ============================
+  const subject = encodeURIComponent("طلب استشارة – بوت دردشة لعملي");
+  const body = encodeURIComponent(
+`مرحبًا فريق نوفا لينك،
 
 لدي مشروع وأفكّر في استخدام بوت دردشة لتخفيف ضغط الاستفسارات
 وتحسين تجربة العملاء.
@@ -472,15 +472,15 @@ ${contact}
 أكثر تحدٍ أواجهه حاليًا:
 
 تم إرسال هذه الرسالة عبر نوفا بوت.`
-    );
+  );
 
-    window.location.href =
-      "mailto:contact@novalink-ai.com?subject=" +
-      subject +
-      "&body=" +
-      body;
-  });
+  window.location.href =
+    "mailto:contact@novalink-ai.com?subject=" +
+    subject +
+    "&body=" +
+    body;
 });
+
 
 
 
