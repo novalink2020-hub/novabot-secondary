@@ -427,40 +427,44 @@ console.log("🟡 CONSULT BTN CLICKED", contact);
   // ============================
   // 1️⃣ Lead Event (مضمون)
   // ============================
-  try {
-    await ensureSessionToken();
+try {
+  await ensureSessionToken();
 
-    dispatchNovaLeadEvent({
-  event_type: "lead_capture",
-  lead_source: "novabot_ui",
+  await dispatchNovaLeadEvent({
+    event_type: "lead_capture",
+    lead_source: "novabot_ui",
 
-  action: "حجز_استشارة",
-  card_id: "bot_consultation",
+    action: "حجز_استشارة",
+    card_id: "bot_consultation",
 
+    contact: {
+      value: contact,
+      ...(contact.includes("@") ? { email: contact } : {}),
+    },
 
-  contact: {
-    value: contact,
-  },
+    user_context: {
+      language: lang,
+      device: isMobileViewport() ? "mobile" : "desktop",
+      page_url: window.location.href,
+    },
 
-  user_context: {
-    language: lang,
-    device: isMobileViewport() ? "mobile" : "desktop",
-    page_url: window.location.href,
-  },
+    conversation_context: {
+      session_id: sessionToken || "",
+    },
 
-  conversation_context: {
-    session_id: sessionToken || "",
-  },
+    meta: {
+      timestamp: Date.now(),
+      version: "lead_v1",
+    },
+  });
 
-  meta: {
-    timestamp: Date.now(),
-    version: "lead_v1",
-  },
-});
+  // ⏱️ micro-flush window before mailto
+  await new Promise((r) => setTimeout(r, 120));
 
-  } catch (e) {
-    console.warn("Consultation lead failed:", e);
-  }
+} catch (e) {
+  console.warn("Consultation lead failed:", e);
+}
+
 
   // ============================
   // 2️⃣ EMAIL — النص الأصلي كما هو
