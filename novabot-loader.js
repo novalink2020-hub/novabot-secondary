@@ -1,3 +1,4 @@
+/* novabot-loader.js — FULL FILE */
 /* NovaBot v6.9.7 – Shadow DOM Loader
    يعمل مع:
    - ui.css
@@ -386,7 +387,7 @@
 
         saveUserContact(contact);
 
-        const subject = encodeURIComponent("طلب استشارة  بوت دردشة لعملي");
+        const subject = encodeURIComponent("طلب استشارة – بوت دردشة لعملي");
         const body = encodeURIComponent(
           `مرحبًا فريق نوفا لينك،
 
@@ -656,7 +657,7 @@ ${contact}
             chatShell.style.height = `${window.innerHeight}px`;
             chatShell.style.maxHeight = `${window.innerHeight}px`;
 
-            // إلغاء أي ضغ تم تطبيقه
+            // إلغاء أي ضغط تم تطبيقه
             chatBody.style.maxHeight = "";
 
             // تمرير لأسفل آخر الرسائل
@@ -743,6 +744,7 @@ ${contact}
     // ============================================================
     let sessionToken = "";
     let sessionExpAt = 0;
+    let sessionContext = null;
 
     function getApiBase(url) {
       return (url || "").replace(/\/+$/, "");
@@ -994,6 +996,9 @@ ${contact}
         if (!res.ok) return { ok: false, reply: "" };
 
         const data = await res.json();
+        if (data && data.session_context && typeof data.session_context === "object") {
+          sessionContext = data.session_context;
+        }
         return {
           ok: data.ok,
           reply: data.reply,
@@ -1065,6 +1070,10 @@ ${contact}
             // ============================
             if (leadEventSent) return;
             await ensureSessionToken();
+            const currentSessionContext =
+              sessionContext && typeof sessionContext === "object"
+                ? sessionContext
+                : {};
             const leadPayload = {
               event_type: "lead_capture",
               lead_source: "novabot_ui",
@@ -1084,6 +1093,24 @@ ${contact}
 
               conversation_context: {
                 session_id: sessionToken || "",
+                ...(currentSessionContext.intent !== undefined
+                  ? { intent: currentSessionContext.intent }
+                  : {}),
+                ...(currentSessionContext.stage !== undefined
+                  ? { stage: currentSessionContext.stage }
+                  : {}),
+                ...(currentSessionContext.temperature !== undefined
+                  ? { temperature: currentSessionContext.temperature }
+                  : {}),
+                ...(currentSessionContext.interest !== undefined
+                  ? { interest: currentSessionContext.interest }
+                  : {}),
+                ...(currentSessionContext.business !== undefined
+                  ? { business: currentSessionContext.business }
+                  : {}),
+                ...(currentSessionContext.last_message !== undefined
+                  ? { last_message: currentSessionContext.last_message }
+                  : {}),
               },
 
               meta: {
