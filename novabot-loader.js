@@ -412,7 +412,7 @@ primaryBtn.addEventListener("click", async () => {
 
       attachAutofill(input);
 
-btn.addEventListener("click", () => {
+btn.addEventListener("click", async () => {
   const contact = (input.value || "").trim();
   if (!contact) {
     alert("يرجى إدخال وسيلة تواصل.");
@@ -423,39 +423,44 @@ btn.addEventListener("click", () => {
   saveUserContact(contact);
 
   // ============================
-  // 1️⃣ Lead Event (Fire & Forget)
+  // 1️⃣ Lead Event (مضمون)
   // ============================
-  ensureSessionToken();
-  dispatchNovaLeadEvent({
-    event_type: "lead_capture",
-    lead_source: "novabot_ui",
+  try {
+    await ensureSessionToken();
 
-    action: "حجز_استشارة",
-    card_id: "bot_consultation",
+    dispatchNovaLeadEvent({
+      event_type: "lead_capture",
+      lead_source: "novabot_ui",
 
-    contact: {
-      value: contact,
-      ...(contact.includes("@") ? { email: contact } : {}),
-    },
+      action: "حجز_استشارة",
+      card_id: "bot_consultation",
 
-    user_context: {
-      language: lang,
-      device: isMobileViewport() ? "mobile" : "desktop",
-      page_url: window.location.href,
-    },
+      contact: {
+        value: contact,
+        ...(contact.includes("@") ? { email: contact } : {}),
+      },
 
-    conversation_context: {
-      session_id: sessionToken || "",
-    },
+      user_context: {
+        language: lang,
+        device: isMobileViewport() ? "mobile" : "desktop",
+        page_url: window.location.href,
+      },
 
-    meta: {
-      timestamp: Date.now(),
-      version: "lead_v1",
-    },
-  });
+      conversation_context: {
+        session_id: sessionToken || "",
+      },
+
+      meta: {
+        timestamp: Date.now(),
+        version: "lead_v1",
+      },
+    });
+  } catch (e) {
+    console.warn("Consultation lead failed:", e);
+  }
 
   // ============================
-  // 2️⃣ EMAIL — النص الأصلي حرفيًا
+  // 2️⃣ EMAIL — النص الأصلي كما هو
   // ============================
   const subject = encodeURIComponent("طلب استشارة – بوت دردشة لعملي");
   const body = encodeURIComponent(
@@ -480,7 +485,6 @@ ${contact}
     "&body=" +
     body;
 });
-
 
 
 
