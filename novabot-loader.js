@@ -412,7 +412,7 @@ primaryBtn.addEventListener("click", async () => {
 
       attachAutofill(input);
 
-btn.addEventListener("click", async () => {
+btn.addEventListener("click", () => {
   const contact = (input.value || "").trim();
   if (!contact) {
     alert("يرجى إدخال وسيلة تواصل.");
@@ -422,43 +422,8 @@ btn.addEventListener("click", async () => {
 
   saveUserContact(contact);
 
-  // تأكد من وجود Session Token
-  await ensureSessionToken();
-
   // ============================
-  // Lead Event (Consultation)
-  // ============================
-  const leadPayload = {
-    event_type: "lead_capture",
-    lead_source: "novabot_ui",
-
-    action: "حجز_استشارة",
-    card_id: "bot_consultation",
-
-    contact: {
-      value: contact,
-    },
-
-    user_context: {
-      language: lang,
-      device: isMobileViewport() ? "mobile" : "desktop",
-      page_url: window.location.href,
-    },
-
-    conversation_context: {
-      session_id: sessionToken || "",
-    },
-
-    meta: {
-      timestamp: Date.now(),
-      version: "lead_v1",
-    },
-  };
-
-  dispatchNovaLeadEvent(leadPayload);
-
-  // ============================
-  // Email (النص الأصلي كامل)
+  // ✅ 1. EMAIL — فوري (User Gesture)
   // ============================
   const subject = encodeURIComponent("طلب استشارة – بوت دردشة لعملي");
   const body = encodeURIComponent(
@@ -482,7 +447,48 @@ ${contact}
     subject +
     "&body=" +
     body;
+
+  // ============================
+  // ✅ 2. LEAD EVENT — غير معيق
+  // ============================
+  setTimeout(async () => {
+    try {
+      await ensureSessionToken();
+
+      const leadPayload = {
+        event_type: "lead_capture",
+        lead_source: "novabot_ui",
+
+        action: "حجز_استشارة",
+        card_id: "bot_consultation",
+
+        contact: {
+          value: contact,
+        },
+
+        user_context: {
+          language: lang,
+          device: isMobileViewport() ? "mobile" : "desktop",
+          page_url: window.location.href,
+        },
+
+        conversation_context: {
+          session_id: sessionToken || "",
+        },
+
+        meta: {
+          timestamp: Date.now(),
+          version: "lead_v1",
+        },
+      };
+
+      dispatchNovaLeadEvent(leadPayload);
+    } catch (err) {
+      console.warn("Consultation lead event failed:", err);
+    }
+  }, 0);
 });
+
 
 
       return card;
