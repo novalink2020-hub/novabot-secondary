@@ -1590,7 +1590,7 @@ async function dispatchNovaLeadEvent(payload) {
     sessionContext.intent === "اهتمام_ذكاء_اصطناعي_للأعمال" ||
     sessionContext.interest === "business_subscription"
   ) &&
-  sessionContext.temperature !== "دافئ"
+  sessionContext.temperature !== "بارد"
 ) {
   businessNurtureShown = true;
   setTimeout(() => {
