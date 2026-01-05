@@ -435,7 +435,7 @@ try {
     lead_source: "novabot_ui",
 
     action: "حجز_استشارة",
-    card_id: "bot_lead",
+    card_id: "bot_consultation",
 
     contact: {
       value: contact,
@@ -1234,9 +1234,8 @@ async function dispatchNovaLeadEvent(payload) {
               },
             };
 
-await dispatchNovaLeadEvent(leadPayload);
-leadEventSent = true;
-
+            dispatchNovaLeadEvent(leadPayload);
+            leadEventSent = true;
 
             const successMsg =
               lang === "en"
